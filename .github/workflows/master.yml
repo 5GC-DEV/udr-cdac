@@ -101,7 +101,7 @@ jobs:
     env:
     
       REGISTRY: docker.io
-      DOCKER_REGISTRY: ajeesh@cazelabs.com/
+      DOCKER_REGISTRY: ajeeshcazelabs/
     steps:
       - uses: actions/checkout@v4
 
