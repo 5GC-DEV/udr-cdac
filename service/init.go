@@ -20,7 +20,6 @@ import (
 	"github.com/omec-project/openapi/models"
 	"github.com/omec-project/udr/consumer"
 	"github.com/omec-project/udr/context"
-	udr_context "github.com/omec-project/udr/context"
 	"github.com/omec-project/udr/datarepository"
 	"github.com/omec-project/udr/factory"
 	"github.com/omec-project/udr/logger"
@@ -28,12 +27,11 @@ import (
 	"github.com/omec-project/udr/producer"
 	"github.com/omec-project/udr/util"
 	"github.com/omec-project/util/http2_util"
-	logger_util "github.com/omec-project/util/logger"
-	mongoDBLibLogger "github.com/omec-project/util/logger"
+	utilLogger "github.com/omec-project/util/logger"
 	"github.com/omec-project/util/path_util"
-	pathUtilLogger "github.com/omec-project/util/path_util/logger"
-	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type UDR struct{}
@@ -58,7 +56,7 @@ var udrCLi = []cli.Flag{
 	},
 }
 
-var initLog *logrus.Entry
+var initLog *zap.SugaredLogger
 
 var (
 	KeepAliveTimer      *time.Timer
@@ -106,51 +104,33 @@ func (udr *UDR) setLogLevel() {
 
 	if factory.UdrConfig.Logger.UDR != nil {
 		if factory.UdrConfig.Logger.UDR.DebugLevel != "" {
-			if level, err := logrus.ParseLevel(factory.UdrConfig.Logger.UDR.DebugLevel); err != nil {
+			if level, err := zapcore.ParseLevel(factory.UdrConfig.Logger.UDR.DebugLevel); err != nil {
 				initLog.Warnf("UDR Log level [%s] is invalid, set to [info] level",
 					factory.UdrConfig.Logger.UDR.DebugLevel)
-				logger.SetLogLevel(logrus.InfoLevel)
+				logger.SetLogLevel(zap.InfoLevel)
 			} else {
 				initLog.Infof("UDR Log level is set to [%s] level", level)
 				logger.SetLogLevel(level)
 			}
 		} else {
 			initLog.Infoln("UDR Log level not set. Default set to [info] level")
-			logger.SetLogLevel(logrus.InfoLevel)
+			logger.SetLogLevel(zap.InfoLevel)
 		}
-		logger.SetReportCaller(factory.UdrConfig.Logger.UDR.ReportCaller)
-	}
-
-	if factory.UdrConfig.Logger.PathUtil != nil {
-		if factory.UdrConfig.Logger.PathUtil.DebugLevel != "" {
-			if level, err := logrus.ParseLevel(factory.UdrConfig.Logger.PathUtil.DebugLevel); err != nil {
-				pathUtilLogger.PathLog.Warnf("PathUtil Log level [%s] is invalid, set to [info] level",
-					factory.UdrConfig.Logger.PathUtil.DebugLevel)
-				pathUtilLogger.SetLogLevel(logrus.InfoLevel)
-			} else {
-				pathUtilLogger.SetLogLevel(level)
-			}
-		} else {
-			pathUtilLogger.PathLog.Warnln("PathUtil Log level not set. Default set to [info] level")
-			pathUtilLogger.SetLogLevel(logrus.InfoLevel)
-		}
-		pathUtilLogger.SetReportCaller(factory.UdrConfig.Logger.PathUtil.ReportCaller)
 	}
 
 	if factory.UdrConfig.Logger.MongoDBLibrary != nil {
 		if factory.UdrConfig.Logger.MongoDBLibrary.DebugLevel != "" {
-			if level, err := logrus.ParseLevel(factory.UdrConfig.Logger.MongoDBLibrary.DebugLevel); err != nil {
-				mongoDBLibLogger.AppLog.Warnf("MongoDBLibrary Log level [%s] is invalid, set to [info] level",
+			if level, err := zapcore.ParseLevel(factory.UdrConfig.Logger.MongoDBLibrary.DebugLevel); err != nil {
+				utilLogger.AppLog.Warnf("MongoDBLibrary Log level [%s] is invalid, set to [info] level",
 					factory.UdrConfig.Logger.MongoDBLibrary.DebugLevel)
-				mongoDBLibLogger.SetLogLevel(logrus.InfoLevel)
+				utilLogger.SetLogLevel(zap.InfoLevel)
 			} else {
-				mongoDBLibLogger.SetLogLevel(level)
+				utilLogger.SetLogLevel(level)
 			}
 		} else {
-			mongoDBLibLogger.AppLog.Warnln("MongoDBLibrary Log level not set. Default set to [info] level")
-			mongoDBLibLogger.SetLogLevel(logrus.InfoLevel)
+			utilLogger.AppLog.Warnln("MongoDBLibrary Log level not set. Default set to [info] level")
+			utilLogger.SetLogLevel(zap.InfoLevel)
 		}
-		mongoDBLibLogger.SetReportCaller(factory.UdrConfig.Logger.MongoDBLibrary.ReportCaller)
 	}
 }
 
@@ -171,23 +151,21 @@ func (udr *UDR) Start() {
 	// get config file info
 	config := factory.UdrConfig
 	mongodb := config.Configuration.Mongodb
-	initLog.Infof("UDR Config Info: Version[%s] Description[%s]", config.Info.Version, config.Info.Description)
+	initLog.Infof("udr config info: Version[%s] Description[%s]", config.Info.Version, config.Info.Description)
 
 	// Connect to MongoDB
 	producer.ConnectMongo(mongodb.Url, mongodb.Name, mongodb.AuthUrl, mongodb.AuthKeysDbName)
-	initLog.Infoln("Server started")
+	initLog.Infoln("server started")
 
-	router := logger_util.NewGinWithLogrus(logger.GinLog)
+	router := utilLogger.NewGinWithZap(logger.GinLog)
 
 	datarepository.AddService(router)
 
 	go metrics.InitMetrics()
 
 	udrLogPath := util.UdrLogPath
-	udrPemPath := util.UdrPemPath
-	udrKeyPath := util.UdrKeyPath
 
-	self := udr_context.UDR_Self()
+	self := context.UDR_Self()
 	util.InitUdrContext(self)
 
 	addr := fmt.Sprintf("%s:%d", self.BindingIPv4, self.SBIPort)
@@ -205,32 +183,31 @@ func (udr *UDR) Start() {
 
 	server, err := http2_util.NewServer(addr, udrLogPath, router)
 	if server == nil {
-		initLog.Errorf("Initialize HTTP server failed: %+v", err)
+		initLog.Errorf("initialize HTTP server failed: %+v", err)
 		return
 	}
 
 	if err != nil {
-		initLog.Warnf("Initialize HTTP server: %+v", err)
+		initLog.Warnf("initialize HTTP server: %+v", err)
 	}
 
 	serverScheme := factory.UdrConfig.Configuration.Sbi.Scheme
 	if serverScheme == "http" {
 		err = server.ListenAndServe()
 	} else if serverScheme == "https" {
-		err = server.ListenAndServeTLS(udrPemPath, udrKeyPath)
+		err = server.ListenAndServeTLS(self.PEM, self.Key)
 	}
 
 	if err != nil {
-		initLog.Fatalf("HTTP server setup failed: %+v", err)
+		initLog.Fatalf("http server setup failed: %+v", err)
 	}
 }
 
 func (udr *UDR) Exec(c *cli.Context) error {
 	// UDR.Initialize(cfgPath, c)
-
-	initLog.Traceln("args:", c.String("udrcfg"))
+	initLog.Debugln("args:", c.String("udrcfg"))
 	args := udr.FilterCli(c)
-	initLog.Traceln("filter: ", args)
+	initLog.Debugln("filter:", args)
 	command := exec.Command("./udr", args...)
 
 	if err := udr.Initialize(c); err != nil {
@@ -248,7 +225,7 @@ func (udr *UDR) Exec(c *cli.Context) error {
 	go func() {
 		in := bufio.NewScanner(stdout)
 		for in.Scan() {
-			fmt.Println(in.Text())
+			initLog.Debugln(in.Text())
 		}
 		wg.Done()
 	}()
@@ -262,7 +239,7 @@ func (udr *UDR) Exec(c *cli.Context) error {
 	go func() {
 		in := bufio.NewScanner(stderr)
 		for in.Scan() {
-			fmt.Println(in.Text())
+			initLog.Debugln(in.Text())
 		}
 		wg.Done()
 	}()
@@ -270,7 +247,7 @@ func (udr *UDR) Exec(c *cli.Context) error {
 	var err error
 	go func() {
 		if errormessage := command.Start(); err != nil {
-			fmt.Println("command.Start Fails!")
+			initLog.Errorln("command.Start Failed")
 			err = errormessage
 		}
 		wg.Done()
@@ -281,22 +258,22 @@ func (udr *UDR) Exec(c *cli.Context) error {
 }
 
 func (udr *UDR) Terminate() {
-	logger.InitLog.Infof("Terminating UDR...")
+	logger.InitLog.Infof("terminating UDR...")
 	// deregister with NRF
 	problemDetails, err := consumer.SendDeregisterNFInstance()
 	if problemDetails != nil {
-		logger.InitLog.Errorf("Deregister NF instance Failed Problem[%+v]", problemDetails)
+		logger.InitLog.Errorf("deregister NF instance Failed Problem[%+v]", problemDetails)
 	} else if err != nil {
-		logger.InitLog.Errorf("Deregister NF instance Error[%+v]", err)
+		logger.InitLog.Errorf("deregister NF instance Error[%+v]", err)
 	} else {
-		logger.InitLog.Infof("Deregister from NRF successfully")
+		logger.InitLog.Infof("deregister from NRF successfully")
 	}
-	logger.InitLog.Infof("UDR terminated")
+	logger.InitLog.Infof("udr terminated")
 }
 
 func (udr *UDR) configUpdateDb() {
 	for msg := range factory.ConfigUpdateDbTrigger {
-		initLog.Infof("Config update DB trigger")
+		initLog.Infof("config update DB trigger")
 		err := producer.AddEntrySmPolicyTable(
 			msg.SmPolicyTable.Imsi,
 			msg.SmPolicyTable.Dnn,
@@ -316,14 +293,14 @@ func (udr *UDR) StartKeepAliveTimer(nfProfile models.NfProfile) {
 	if nfProfile.HeartBeatTimer == 0 {
 		nfProfile.HeartBeatTimer = 60
 	}
-	logger.InitLog.Infof("Started KeepAlive Timer: %v sec", nfProfile.HeartBeatTimer)
+	logger.InitLog.Infof("started KeepAlive Timer: %v sec", nfProfile.HeartBeatTimer)
 	// AfterFunc starts timer and waits for KeepAliveTimer to elapse and then calls udr.UpdateNF function
 	KeepAliveTimer = time.AfterFunc(time.Duration(nfProfile.HeartBeatTimer)*time.Second, udr.UpdateNF)
 }
 
 func (udr *UDR) StopKeepAliveTimer() {
 	if KeepAliveTimer != nil {
-		logger.InitLog.Infof("Stopped KeepAlive Timer.")
+		logger.InitLog.Infof("stopped KeepAlive Timer.")
 		KeepAliveTimer.Stop()
 		KeepAliveTimer = nil
 	}
@@ -332,7 +309,7 @@ func (udr *UDR) StopKeepAliveTimer() {
 func (udr *UDR) BuildAndSendRegisterNFInstance() (prof models.NfProfile, err error) {
 	self := context.UDR_Self()
 	profile := consumer.BuildNFInstance(self)
-	initLog.Infof("Pcf Profile Registering to NRF: %v", profile)
+	initLog.Infof("pcf Profile Registering to NRF: %v", profile)
 	// Indefinite attempt to register until success
 	profile, _, self.NfId, err = consumer.SendRegisterNFInstance(self.NrfUri, self.NfId, profile)
 	return profile, err
@@ -343,7 +320,7 @@ func (udr *UDR) UpdateNF() {
 	KeepAliveTimerMutex.Lock()
 	defer KeepAliveTimerMutex.Unlock()
 	if KeepAliveTimer == nil {
-		initLog.Warnf("KeepAlive timer has been stopped.")
+		initLog.Warnf("keepAlive timer has been stopped.")
 		return
 	}
 	// setting default value 30 sec
@@ -379,15 +356,15 @@ func (udr *UDR) UpdateNF() {
 		// use hearbeattimer value with received timer value from NRF
 		heartBeatTimer = nfProfile.HeartBeatTimer
 	}
-	logger.InitLog.Debugf("Restarted KeepAlive Timer: %v sec", heartBeatTimer)
+	logger.InitLog.Debugf("restarted KeepAlive Timer: %v sec", heartBeatTimer)
 	// restart timer with received HeartBeatTimer value
 	KeepAliveTimer = time.AfterFunc(time.Duration(heartBeatTimer)*time.Second, udr.UpdateNF)
 }
 
 func (udr *UDR) registerNF() {
 	for msg := range factory.ConfigPodTrigger {
-		initLog.Infof("Minimum configuration from config pod available %v", msg)
-		self := udr_context.UDR_Self()
+		initLog.Infof("minimum configuration from config pod available %v", msg)
+		self := context.UDR_Self()
 		profile := consumer.BuildNFInstance(self)
 		var err error
 		var prof models.NfProfile
@@ -395,9 +372,9 @@ func (udr *UDR) registerNF() {
 		prof, _, self.NfId, err = consumer.SendRegisterNFInstance(self.NrfUri, profile.NfInstanceId, profile)
 		if err == nil {
 			udr.StartKeepAliveTimer(prof)
-			logger.CfgLog.Infoln("Sent Register NF Instance with updated profile")
+			logger.CfgLog.Infoln("sent Register NF Instance with updated profile")
 		} else {
-			initLog.Errorf("Send Register NFInstance Error[%s]", err.Error())
+			initLog.Errorf("send Register NFInstance Error[%s]", err.Error())
 		}
 	}
 }

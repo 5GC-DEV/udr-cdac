@@ -11,13 +11,13 @@ import (
 
 	"github.com/omec-project/udr/logger"
 	udr_service "github.com/omec-project/udr/service"
-	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+	"go.uber.org/zap"
 )
 
 var UDR = &udr_service.UDR{}
 
-var appLog *logrus.Entry
+var appLog *zap.SugaredLogger
 
 func init() {
 	appLog = logger.AppLog
@@ -38,7 +38,7 @@ func main() {
 func action(c *cli.Context) error {
 	if err := UDR.Initialize(c); err != nil {
 		logger.CfgLog.Errorf("%+v", err)
-		return fmt.Errorf("Failed to initialize !!")
+		return fmt.Errorf("failed to initialize")
 	}
 
 	UDR.Start()
