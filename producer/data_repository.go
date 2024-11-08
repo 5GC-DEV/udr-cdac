@@ -2823,7 +2823,7 @@ func QuerysdmsubscriptionsProcedure(ueId string) (*[]models.SdmSubscription, *mo
 	return &sdmSubscriptionSlice, nil
 }
 
-func HandleQuerySmData(request *httpwrapper.Request) *httpwrapper.Response {
+/* func HandleQuerySmData(request *httpwrapper.Request) *httpwrapper.Response {
 	logger.DataRepoLog.Infoln("handle QuerySmData")
 
 	collName := "subscriptionData.provisionedData.smData"
@@ -2865,6 +2865,72 @@ func QuerySmDataProcedure(collName string, ueId string, servingPlmnId string,
 		logger.DataRepoLog.Warnln(errGetMany)
 	}
 
+	return &sessionManagementSubscriptionDatas
+} */
+
+func HandleQuerySmData(request *httpwrapper.Request) *httpwrapper.Response {
+	logger.DataRepoLog.Infoln("HandleQuerySmData called with UE ID:", request.Params["ueId"])
+	logger.DataRepoLog.Infoln("Serving PLMN ID:", request.Params["servingPlmnId"])
+
+	collName := "subscriptionData.provisionedData.smData"
+	ueId := request.Params["ueId"]
+	servingPlmnId := request.Params["servingPlmnId"]
+
+	// Log the raw query parameters
+	logger.DataRepoLog.Infof("Raw query parameters: single-nssai=%s, dnn=%s", request.Query.Get("single-nssai"), request.Query.Get("dnn"))
+
+	singleNssai := models.Snssai{}
+	singleNssaiQuery := request.Query.Get("single-nssai")
+	err := json.Unmarshal([]byte(singleNssaiQuery), &singleNssai)
+	if err != nil {
+		logger.DataRepoLog.Warnln("Failed to unmarshal single-nssai:", err)
+	} else {
+		logger.DataRepoLog.Infof("Parsed single-nssai: %+v", singleNssai)
+	}
+
+	dnn := request.Query.Get("dnn")
+	if dnn != "" {
+		logger.DataRepoLog.Infof("DNN parameter provided: %s", dnn)
+	}
+
+	response := QuerySmDataProcedure(collName, ueId, servingPlmnId, singleNssai, dnn)
+
+	logger.DataRepoLog.Infoln("HandleQuerySmData response generated")
+	return httpwrapper.NewResponse(http.StatusOK, nil, response)
+}
+
+func QuerySmDataProcedure(collName string, ueId string, servingPlmnId string, singleNssai models.Snssai, dnn string) *[]map[string]interface{} {
+	logger.DataRepoLog.Infoln("QuerySmDataProcedure called with collection:", collName)
+	logger.DataRepoLog.Infof("Filter criteria: ueId=%s, servingPlmnId=%s", ueId, servingPlmnId)
+
+	// Create filter map and log each step
+	filter := bson.M{"ueId": ueId, "servingPlmnId": servingPlmnId}
+	logger.DataRepoLog.Infof("Initial filter: %+v", filter)
+
+	if !reflect.DeepEqual(singleNssai, models.Snssai{}) {
+		logger.DataRepoLog.Infof("Applying singleNssai filter: %+v", singleNssai)
+		if singleNssai.Sd == "" {
+			filter["singleNssai.sst"] = singleNssai.Sst
+		} else {
+			filter["singleNssai.sst"] = singleNssai.Sst
+			filter["singleNssai.sd"] = singleNssai.Sd
+		}
+		logger.DataRepoLog.Infof("Updated filter with singleNssai: %+v", filter)
+	}
+
+	if dnn != "" {
+		logger.DataRepoLog.Infof("Applying DNN filter for: %s", dnn)
+		filter["dnnConfigurations."+dnn] = bson.M{"$exists": true}
+		logger.DataRepoLog.Infof("Updated filter with DNN: %+v", filter)
+	}
+
+	// Log before making the DB call
+	logger.DataRepoLog.Infoln("Executing DB query with filter:", filter)
+
+	sessionManagementSubscriptionDatas, errGetMany := CommonDBClient.RestfulAPIGetMany(collName, filter)
+	if errGetMany != nil {
+		logger.DataRepoLog.Warnln("DB query error:", errGetMany)
+	}
 	return &sessionManagementSubscriptionDatas
 }
 
