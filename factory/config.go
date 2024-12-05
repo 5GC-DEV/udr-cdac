@@ -11,7 +11,7 @@
 package factory
 
 import (
-	protos "github.com/omec-project/config5g/proto/sdcoreConfig"
+	protos "github.com/anaswarac-dac/config5g-cdac/proto/sdcoreConfig"
 	"github.com/omec-project/openapi/models"
 	"github.com/omec-project/udr/logger"
 	utilLogger "github.com/omec-project/util/logger"
@@ -88,6 +88,7 @@ func (c *Config) GetVersion() string {
 	return ""
 }
 
+/*
 func (c *Config) addSmPolicyInfo(nwSlice *protos.NetworkSlice, dbUpdateChannel chan *UpdateDb) error {
 	for _, devGrp := range nwSlice.DeviceGroup {
 		for _, imsi := range devGrp.Imsi {
@@ -104,7 +105,30 @@ func (c *Config) addSmPolicyInfo(nwSlice *protos.NetworkSlice, dbUpdateChannel c
 	}
 	return nil
 }
+*/
 
+// C-DAC START
+func (c *Config) addSmPolicyInfo(nwSlice *protos.NetworkSlice, dbUpdateChannel chan *UpdateDb) error {
+	for _, devGrp := range nwSlice.DeviceGroup {
+		for _, imsi := range devGrp.Imsi {
+			// Iterate over the IpDomainDetails slice
+			for _, ipDomain := range devGrp.IpDomainDetails {
+				smPolicyEntry := &SmPolicyUpdateEntry{
+					Imsi:   imsi,
+					Dnn:    ipDomain.DnnName, // Access DnnName from the IpDomain struct
+					Snssai: nwSlice.Nssai,
+				}
+				dbUpdate := &UpdateDb{
+					SmPolicyTable: smPolicyEntry,
+				}
+				dbUpdateChannel <- dbUpdate
+			}
+		}
+	}
+	return nil
+}
+
+// C-DAC END
 func (c *Config) updateConfig(commChannel chan *protos.NetworkSliceResponse, dbUpdateChannel chan *UpdateDb) bool {
 	var minConfig bool
 	for rsp := range commChannel {

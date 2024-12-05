@@ -14,8 +14,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/omec-project/config5g/proto/client"
-	protos "github.com/omec-project/config5g/proto/sdcoreConfig"
+	"github.com/anaswarac-dac/config5g-cdac/proto/client"
+	protos "github.com/anaswarac-dac/config5g-cdac/proto/sdcoreConfig"
 	"github.com/omec-project/udr/logger"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"

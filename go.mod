@@ -3,6 +3,7 @@ module github.com/omec-project/udr
 go 1.21
 
 require (
+	github.com/anaswarac-dac/config5g-cdac v0.0.0-20241202102502-e89ac4024fc1
 	github.com/evanphx/json-patch v5.9.0+incompatible
 	github.com/gin-gonic/gin v1.10.0
 	github.com/google/uuid v1.6.0
