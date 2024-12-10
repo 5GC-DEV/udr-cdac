@@ -132,6 +132,7 @@ func AddEntrySmPolicyTable(imsi string, dnn string, snssai *protos.NSSAI) error 
 	if addUeId {
 		smPolicyDataBsonM["ueId"] = ueID
 	}
+	logger.CfgLog.Infof("*** Data to be sent to database - smPolicyData: %+v", smPolicyDataBsonM)
 	_, errPost := CommonDBClient.RestfulAPIPost(collName, filter, smPolicyDataBsonM)
 	if errPost != nil {
 		logger.DataRepoLog.Warnln(errPost)
