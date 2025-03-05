@@ -118,7 +118,6 @@ func AddEntrySmPolicyTable(imsi string, dnn string, snssai *protos.NSSAI) error 
 		smPolicyDataWrite.SmPolicySnssaiData = make(map[string]models.SmPolicySnssaiData)
 		addUeId = true
 	}
-
 	// Prepare the new entry for this DNN and SNSSAI
 	smPolicySnssaiData := models.SmPolicySnssaiData{
 		Snssai: &modelNssai,
