@@ -155,6 +155,7 @@ func AddEntrySmPolicyTable(imsi string, dnn string, snssai *protos.NSSAI) error 
 	}
 	return nil
 }
+
 func HandleDeleteAccessAndMobilityData(request *httpwrapper.Request) *httpwrapper.Response {
 	return httpwrapper.NewResponse(http.StatusOK, nil, map[string]interface{}{})
 }
