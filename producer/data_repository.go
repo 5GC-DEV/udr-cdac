@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	protos "github.com/anaswarac-dac/config5g-cdac/proto/sdcoreConfig"
+	protos "github.com/5GC-DEV/config5g-cdac/proto/sdcoreConfig"
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/mitchellh/mapstructure"
 	"github.com/omec-project/openapi/models"

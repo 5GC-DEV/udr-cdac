@@ -11,7 +11,7 @@
 package factory
 
 import (
-	protos "github.com/anaswarac-dac/config5g-cdac/proto/sdcoreConfig"
+	protos "github.com/5GC-DEV/config5g-cdac/proto/sdcoreConfig"
 	"github.com/omec-project/openapi/models"
 	"github.com/omec-project/udr/logger"
 	utilLogger "github.com/omec-project/util/logger"

@@ -5,7 +5,6 @@ go 1.23
 toolchain go1.23.7
 
 require (
-	github.com/anaswarac-dac/config5g-cdac v0.1.2
 	github.com/evanphx/json-patch v5.9.0+incompatible
 	github.com/gin-gonic/gin v1.10.0
 	github.com/google/uuid v1.6.0
@@ -22,6 +21,7 @@ require (
 )
 
 require (
+	github.com/5GC-DEV/config5g-cdac v1.4.2-0.20250430103952-0383bf5b24b8 // indirect
 	github.com/antihax/optional v1.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

@@ -18,8 +18,8 @@ import (
 	"syscall"
 	"time"
 
-	grpcClient "github.com/anaswarac-dac/config5g-cdac/proto/client"
-	protos "github.com/anaswarac-dac/config5g-cdac/proto/sdcoreConfig"
+	grpcClient "github.com/5GC-DEV/config5g-cdac/proto/client"
+	protos "github.com/5GC-DEV/config5g-cdac/proto/sdcoreConfig"
 	"github.com/omec-project/openapi/models"
 	"github.com/omec-project/udr/consumer"
 	"github.com/omec-project/udr/context"
