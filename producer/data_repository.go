@@ -244,8 +244,10 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 
 	err := CreateAmfContext3gppProcedure(collName, ueId, Amf3GppAccessRegistration)
 	if err == nil {
+		logger.DataRepoLog.Infoln("---create success")
 		stats.IncrementUdrSubscriptionDataStats("create", "amf-3gpp-access", "SUCCESS")
 	} else {
+		logger.DataRepoLog.Infoln("---create failure")
 		stats.IncrementUdrSubscriptionDataStats("create", "amf-3gpp-access", "FAILURE")
 	}
 
@@ -255,12 +257,14 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 func CreateAmfContext3gppProcedure(collName string, ueId string,
 	Amf3GppAccessRegistration models.Amf3GppAccessRegistration,
 ) error {
+	logger.DataRepoLog.Infoln("---in CreateAmfContext3gppProcedure")
 	filter := bson.M{"ueId": ueId}
 	putData := util.ToBsonM(Amf3GppAccessRegistration)
 	putData["ueId"] = ueId
 
 	_, errPutOne := CommonDBClient.RestfulAPIPutOne(collName, filter, putData)
 	if errPutOne != nil {
+		logger.DataRepoLog.Infoln("---errPutOne not nil")
 		logger.DataRepoLog.Warnln(errPutOne)
 	}
 	return errPutOne
