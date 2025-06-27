@@ -262,6 +262,14 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 	putData := util.ToBsonM(Amf3GppAccessRegistration)
 	putData["ueId"] = ueId
 
+	data, errGetOne := CommonDBClient.RestfulAPIGetOne(collName, filter)
+	if errGetOne != nil {
+		logger.DataRepoLog.Warnln(errGetOne)
+	}
+	if data == nil {
+		return errGetOne
+	}
+
 	_, errPutOne := CommonDBClient.RestfulAPIPutOne(collName, filter, putData)
 	if errPutOne != nil {
 		logger.DataRepoLog.Infoln("---errPutOne not nil")
