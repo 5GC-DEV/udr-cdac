@@ -269,6 +269,8 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 	}
 	if data == nil {
 		return errGetOne
+	} else {
+		logger.DataRepoLog.Infoln("---data(supi)found from mongodb")
 	}
 
 	_, errPutOne := CommonDBClient.RestfulAPIPutOne(collName, filter, putData)
