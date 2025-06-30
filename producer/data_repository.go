@@ -249,6 +249,7 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 	} else {
 		logger.DataRepoLog.Infoln("---create failure")
 		stats.IncrementUdrSubscriptionDataStats("create", "amf-3gpp-access", "FAILURE")
+		return httpwrapper.NewResponse(http.StatusForbidden, nil, map[string]interface{}{})
 	}
 
 	return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
