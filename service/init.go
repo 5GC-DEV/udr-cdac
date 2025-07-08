@@ -31,7 +31,7 @@ import (
 	"github.com/omec-project/udr/util"
 	"github.com/omec-project/util/http2_util"
 	utilLogger "github.com/omec-project/util/logger"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v3"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -48,7 +48,7 @@ type (
 var config Config
 
 var udrCLi = []cli.Flag{
-	cli.StringFlag{
+	&cli.StringFlag{
 		Name:     "cfg",
 		Usage:    "udr config file",
 		Required: true,
@@ -64,7 +64,7 @@ func (*UDR) GetCliCmd() (flags []cli.Flag) {
 	return udrCLi
 }
 
-func (udr *UDR) Initialize(c *cli.Context) error {
+func (udr *UDR) Initialize(c *cli.Command) error {
 	config = Config{
 		cfg: c.String("cfg"),
 	}
@@ -110,7 +110,7 @@ func manageGrpcClient(webuiUri string) {
 	count := 0
 	for {
 		if client != nil {
-			if client.CheckGrpcConnectivity() != "ready" {
+			if client.CheckGrpcConnectivity() != "READY" {
 				time.Sleep(time.Second * 30)
 				count++
 				if count > 5 {
@@ -139,6 +139,8 @@ func manageGrpcClient(webuiUri string) {
 				go factory.UdrConfig.UpdateConfig(configChannel, factory.ConfigUpdateDbTrigger)
 				logger.InitLog.Infoln("UDR updateConfig is triggered")
 			}
+
+			time.Sleep(time.Second * 5) // Fixes (avoids) 100% CPU utilization
 		} else {
 			client, err = grpcClient.ConnectToConfigServer(webuiUri)
 			stream = nil
@@ -190,9 +192,9 @@ func (udr *UDR) setLogLevel() {
 	}
 }
 
-func (udr *UDR) FilterCli(c *cli.Context) (args []string) {
+func (udr *UDR) FilterCli(c *cli.Command) (args []string) {
 	for _, flag := range udr.GetCliCmd() {
-		name := flag.GetName()
+		name := flag.Names()[0]
 		value := fmt.Sprint(c.Generic(name))
 		if value == "" {
 			continue
@@ -247,10 +249,14 @@ func (udr *UDR) Start() {
 	}
 
 	serverScheme := factory.UdrConfig.Configuration.Sbi.Scheme
-	if serverScheme == "http" {
+	switch serverScheme {
+	case "http":
 		err = server.ListenAndServe()
-	} else if serverScheme == "https" {
+	case "https":
 		err = server.ListenAndServeTLS(self.PEM, self.Key)
+	default:
+		logger.InitLog.Fatalf("HTTP server setup failed: invalid server scheme %+v", serverScheme)
+		return
 	}
 
 	if err != nil {
@@ -258,7 +264,7 @@ func (udr *UDR) Start() {
 	}
 }
 
-func (udr *UDR) Exec(c *cli.Context) error {
+func (udr *UDR) Exec(c *cli.Command) error {
 	// UDR.Initialize(cfgPath, c)
 	logger.InitLog.Debugln("args:", c.String("cfg"))
 	args := udr.FilterCli(c)
