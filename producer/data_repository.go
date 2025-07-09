@@ -267,10 +267,11 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 	if errGetOne != nil {
 		logger.DataRepoLog.Warnln(errGetOne)
 	}
-	if data == nil {
-		return errGetOne
+	if data != nil {
+		logger.DataRepoLog.Infoln("---data(supi) found from mongodb")
 	} else {
-		logger.DataRepoLog.Infoln("---data(supi)found from mongodb")
+		logger.DataRepoLog.Infoln("---data(supi) not found from mongodb")
+		return errGetOne
 	}
 
 	_, errPutOne := CommonDBClient.RestfulAPIPutOne(collName, filter, putData)
@@ -470,6 +471,7 @@ func ModifyAuthenticationProcedure(collName string, ueId string, patchItem []mod
 
 func HandleQueryAuthSubsData(request *httpwrapper.Request) *httpwrapper.Response {
 	logger.DataRepoLog.Infoln("handle QueryAuthSubsData")
+	logger.DataRepoLog.Infoln("---authentication of sub data")
 
 	collName := "subscriptionData.authenticationData.authenticationSubscription"
 	ueId := request.Params["ueId"]
@@ -490,6 +492,7 @@ func HandleQueryAuthSubsData(request *httpwrapper.Request) *httpwrapper.Response
 }
 
 func QueryAuthSubsDataProcedure(collName string, ueId string) (map[string]interface{}, *models.ProblemDetails) {
+	logger.DataRepoLog.Infoln("---in QueryAuthSubsDataProcedure")
 	filter := bson.M{"ueId": ueId}
 
 	authenticationSubscription, errGetOne := AuthDBClient.RestfulAPIGetOne(collName, filter)
@@ -498,8 +501,10 @@ func QueryAuthSubsDataProcedure(collName string, ueId string) (map[string]interf
 	}
 
 	if authenticationSubscription != nil {
+		logger.DataRepoLog.Infoln("---authenticationSubscription not nil")
 		return authenticationSubscription, nil
 	} else {
+		logger.DataRepoLog.Infoln("---authenticationSubscription nil")
 		return nil, util.ProblemDetailsNotFound("USER_NOT_FOUND")
 	}
 }
