@@ -259,7 +259,6 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 	Amf3GppAccessRegistration models.Amf3GppAccessRegistration,
 ) error {
 	logger.DataRepoLog.Infoln("---in CreateAmfContext3gppProcedure")
-
 	//start of modification
 	colleName := "subscriptionData.authenticationData.authenticationSubscription"
 	filters := bson.M{"ueId": ueId}
