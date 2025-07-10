@@ -38,6 +38,7 @@ const (
 	SUBSCDATA_CTXDATA_SMF_REGISTRATION         = "subscriptionData.contextData.smfRegistrations"
 	SUBSCDATA_CTXDATA_SMSF_3GPPACCESS          = "subscriptionData.contextData.smsf3gppAccess"
 	SUBSCDATA_CTXDATA_SMSF_NON3GPPACCESS       = "subscriptionData.contextData.smsfNon3gppAccess"
+	SUBSCDATA_AUTHDATA_AUTHSUBC                = "subscriptionData.authenticationData.authenticationSubscription"
 )
 
 var CurrentResourceUri string
@@ -259,8 +260,8 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 	Amf3GppAccessRegistration models.Amf3GppAccessRegistration,
 ) error {
 	logger.DataRepoLog.Infoln("---in CreateAmfContext3gppProcedure")
-	//start of modification
-	colleName := "subscriptionData.authenticationData.authenticationSubscription"
+	// start of modification
+	colleName := SUBSCDATA_AUTHDATA_AUTHSUBC
 	filters := bson.M{"ueId": ueId}
 	data, errGetOne := AuthDBClient.RestfulAPIGetOne(colleName, filters)
 	if errGetOne != nil {
