@@ -259,12 +259,13 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 	Amf3GppAccessRegistration models.Amf3GppAccessRegistration,
 ) error {
 	logger.DataRepoLog.Infoln("---in CreateAmfContext3gppProcedure")
-	filter := bson.M{"ueId": ueId}
-	putData := util.ToBsonM(Amf3GppAccessRegistration)
-	putData["ueId"] = ueId
 
-	data, errGetOne := CommonDBClient.RestfulAPIGetOne(collName, filter)
+	//start of modification
+	colleName := "subscriptionData.authenticationData.authenticationSubscription"
+	filters := bson.M{"ueId": ueId}
+	data, errGetOne := AuthDBClient.RestfulAPIGetOne(colleName, filters)
 	if errGetOne != nil {
+		logger.DataRepoLog.Infoln("---errGetOne not nil")
 		logger.DataRepoLog.Warnln(errGetOne)
 	}
 	if data != nil {
@@ -273,6 +274,11 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 		logger.DataRepoLog.Infoln("---data(supi) not found from mongodb")
 		return errGetOne
 	}
+	// end of modification
+
+	filter := bson.M{"ueId": ueId}
+	putData := util.ToBsonM(Amf3GppAccessRegistration)
+	putData["ueId"] = ueId
 
 	_, errPutOne := CommonDBClient.RestfulAPIPutOne(collName, filter, putData)
 	if errPutOne != nil {
