@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 
-	protos "github.com/5GC-DEV/config5g-cdac/proto/sdcoreConfig"
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/mitchellh/mapstructure"
 	"github.com/omec-project/openapi/models"
@@ -66,94 +65,6 @@ func deleteDataFromDB(collName string, filter bson.M) error {
 
 func HandleCreateAccessAndMobilityData(request *httpwrapper.Request) *httpwrapper.Response {
 	return httpwrapper.NewResponse(http.StatusOK, nil, map[string]interface{}{})
-}
-
-// seems something which we should move to mongolib
-func toBsonM(data interface{}) (ret bson.M) {
-	tmp, err := json.Marshal(data)
-	if err != nil {
-		logger.CfgLog.Infoln("marshal fail", err)
-	}
-	err = json.Unmarshal(tmp, &ret)
-	if err != nil {
-		logger.CfgLog.Infoln("unmarshal fail", err)
-	}
-	return
-}
-
-// AddEntrySmPolicyTable ... write table entries into policyData.ues.smData
-func AddEntrySmPolicyTable(imsi string, dnn string, snssai *protos.NSSAI) error {
-	logger.CfgLog.Infoln("AddEntrySmPolicyTable")
-	collName := "policyData.ues.smData"
-	var addUeId bool
-	logger.CfgLog.Infoln("collname, imsi, dnn, sst, sd:", collName, imsi, dnn, snssai.Sst, snssai.Sd)
-	ueID := "imsi-" + imsi
-
-	sval, err := strconv.ParseUint(snssai.Sst, 10, 32)
-	if err != nil {
-		logger.CfgLog.Errorln("parse fail for sst", err)
-		return err
-	}
-
-	filter := bson.M{"ueId": ueID}
-	modelNssai := models.Snssai{
-		Sd:  snssai.Sd,
-		Sst: int32(sval),
-	}
-
-	// Fetch the existing smPolicyData for this IMSI
-	smPolicyData, errGetOne := CommonDBClient.RestfulAPIGetOne(collName, filter)
-	if errGetOne != nil {
-		logger.DataRepoLog.Warnln(errGetOne)
-	}
-
-	var smPolicyDataWrite models.SmPolicyData
-	if smPolicyData != nil {
-		err := json.Unmarshal(util.MapToByte(smPolicyData), &smPolicyDataWrite)
-		if err != nil {
-			logger.DataRepoLog.Warnln(err)
-			return err
-		}
-	} else {
-		smPolicyDataWrite.SmPolicySnssaiData = make(map[string]models.SmPolicySnssaiData)
-		addUeId = true
-	}
-	// Prepare the new entry for this DNN and SNSSAI
-	smPolicySnssaiData := models.SmPolicySnssaiData{
-		Snssai: &modelNssai,
-		SmPolicyDnnData: map[string]models.SmPolicyDnnData{
-			dnn: {
-				Dnn: dnn,
-			},
-		},
-	}
-
-	// Check if the DNN already exists for this SNSSAI and IMSI
-	hexSnssai := util.SnssaiModelsToHex(modelNssai)
-	if existingData, exists := smPolicyDataWrite.SmPolicySnssaiData[hexSnssai]; exists {
-		// DNN already exists, append to the existing DNN data
-		existingData.SmPolicyDnnData[dnn] = models.SmPolicyDnnData{
-			Dnn: dnn,
-		}
-		smPolicyDataWrite.SmPolicySnssaiData[hexSnssai] = existingData
-	} else {
-		// New DNN for this SNSSAI, so add the new entry
-		smPolicyDataWrite.SmPolicySnssaiData[hexSnssai] = smPolicySnssaiData
-	}
-
-	// Convert the updated data to BSON format for database insertion
-	smPolicyDataBsonM := toBsonM(smPolicyDataWrite)
-	if addUeId {
-		smPolicyDataBsonM["ueId"] = ueID
-	}
-	logger.CfgLog.Infof("*** Data to be sent to database - smPolicyData: %+v", smPolicyDataBsonM)
-
-	// Post the data to the database
-	_, errPost := CommonDBClient.RestfulAPIPost(collName, filter, smPolicyDataBsonM)
-	if errPost != nil {
-		logger.DataRepoLog.Warnln(errPost)
-	}
-	return nil
 }
 
 func HandleDeleteAccessAndMobilityData(request *httpwrapper.Request) *httpwrapper.Response {
