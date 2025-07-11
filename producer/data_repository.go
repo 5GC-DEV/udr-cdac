@@ -274,7 +274,7 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 		logger.DataRepoLog.Infoln("---data(supi) found from mongodb")
 	} else {
 		logger.DataRepoLog.Infoln("---data(supi) not found from mongodb")
-		return errors.New("no ueId found")
+		return errors.New("NO_REQUIRED_SUBSCRIPTION_DATA")
 	}
 	// end of modification
 
