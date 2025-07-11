@@ -6,6 +6,7 @@ package producer
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -273,7 +274,7 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 		logger.DataRepoLog.Infoln("---data(supi) found from mongodb")
 	} else {
 		logger.DataRepoLog.Infoln("---data(supi) not found from mongodb")
-		return errGetOne
+		return errors.New("no ueId found")
 	}
 	// end of modification
 
