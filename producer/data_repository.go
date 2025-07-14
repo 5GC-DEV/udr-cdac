@@ -245,7 +245,7 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 	ueId := request.Params["ueId"]
 	collName := SUBSCDATA_CTXDATA_AMF_3GPPACCESS
 
-	err, problemDetails := CreateAmfContext3gppProcedure(collName, ueId, Amf3GppAccessRegistration)
+	problemDetails, err := CreateAmfContext3gppProcedure(collName, ueId, Amf3GppAccessRegistration)
 	if err == nil {
 		logger.DataRepoLog.Infoln("---create success")
 		stats.IncrementUdrSubscriptionDataStats("create", "amf-3gpp-access", "SUCCESS")
@@ -260,7 +260,7 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 
 func CreateAmfContext3gppProcedure(collName string, ueId string,
 	Amf3GppAccessRegistration models.Amf3GppAccessRegistration,
-) (error, *models.ProblemDetails) {
+) (*models.ProblemDetails, error) {
 	logger.DataRepoLog.Infoln("---in CreateAmfContext3gppProcedure")
 	// start of modification
 	colleName := SUBSCDATA_AUTHDATA_AUTHSTATUS
@@ -274,7 +274,7 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 		logger.DataRepoLog.Infoln("---data(supi) found from mongodb")
 	} else {
 		logger.DataRepoLog.Infoln("---data(supi) not found from mongodb")
-		return errors.New("data not found"), util.ProblemDetailsNotFound("SUBSCRIPTION_NOT_FOUND")
+		return util.ProblemDetailsNotFound("SUBSCRIPTION_NOT_FOUND"), errors.New("no required subscription data")
 	}
 	// end of modification
 
@@ -287,7 +287,7 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 		logger.DataRepoLog.Infoln("---errPutOne not nil")
 		logger.DataRepoLog.Warnln(errPutOne)
 	}
-	return errPutOne, nil
+	return nil, errPutOne
 }
 
 func HandleQueryAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Response {
