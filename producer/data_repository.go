@@ -245,14 +245,14 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 	ueId := request.Params["ueId"]
 	collName := SUBSCDATA_CTXDATA_AMF_3GPPACCESS
 
-	err := CreateAmfContext3gppProcedure(collName, ueId, Amf3GppAccessRegistration)
+	err, problemDetails := CreateAmfContext3gppProcedure(collName, ueId, Amf3GppAccessRegistration)
 	if err == nil {
 		logger.DataRepoLog.Infoln("---create success")
 		stats.IncrementUdrSubscriptionDataStats("create", "amf-3gpp-access", "SUCCESS")
 	} else {
 		logger.DataRepoLog.Infoln("---create failure")
 		stats.IncrementUdrSubscriptionDataStats("create", "amf-3gpp-access", "FAILURE")
-		return httpwrapper.NewResponse(http.StatusForbidden, nil, map[string]interface{}{})
+		return httpwrapper.NewResponse(http.StatusForbidden, nil, problemDetails)
 	}
 
 	return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
@@ -260,7 +260,7 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 
 func CreateAmfContext3gppProcedure(collName string, ueId string,
 	Amf3GppAccessRegistration models.Amf3GppAccessRegistration,
-) error {
+) (error, *models.ProblemDetails) {
 	logger.DataRepoLog.Infoln("---in CreateAmfContext3gppProcedure")
 	// start of modification
 	colleName := SUBSCDATA_AUTHDATA_AUTHSTATUS
@@ -274,7 +274,7 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 		logger.DataRepoLog.Infoln("---data(supi) found from mongodb")
 	} else {
 		logger.DataRepoLog.Infoln("---data(supi) not found from mongodb")
-		return errors.New("NO_REQUIRED_SUBSCRIPTION_DATA")
+		return errors.New("data not found"), util.ProblemDetailsNotFound("SUBSCRIPTION_NOT_FOUND")
 	}
 	// end of modification
 
@@ -287,7 +287,7 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 		logger.DataRepoLog.Infoln("---errPutOne not nil")
 		logger.DataRepoLog.Warnln(errPutOne)
 	}
-	return errPutOne
+	return errPutOne, nil
 }
 
 func HandleQueryAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Response {
