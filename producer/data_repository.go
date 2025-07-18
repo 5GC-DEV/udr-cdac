@@ -3063,6 +3063,10 @@ func QuerySmDataProcedure(collName string, ueId string, servingPlmnId string,
 ) *[]map[string]interface{} {
 	filter := bson.M{"ueId": ueId, "servingPlmnId": servingPlmnId}
 
+	logger.DataRepoLog.Info("---singleNssai sst and sd: ", singleNssai.Sst, singleNssai.Sd)
+	sstsd := models.Snssai{}
+	logger.DataRepoLog.Info("---models sst and sd: ", sstsd.Sst, sstsd.Sd)
+
 	if !reflect.DeepEqual(singleNssai, models.Snssai{}) {
 		if singleNssai.Sd == "" {
 			filter["singleNssai.sst"] = singleNssai.Sst
