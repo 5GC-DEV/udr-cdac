@@ -573,6 +573,13 @@ func CreateAuthenticationStatusProcedure(collName string, ueId string, putData b
 	filter := bson.M{"ueId": ueId}
 	putData["ueId"] = ueId
 
+	logger.DataRepoLog.Infof("[DB Write] Preparing to write to MongoDB.")
+	logger.DataRepoLog.Infof("[DB Write] Targeting MongoDB collection: %s", collName)
+
+	// Log the full data structure that is being sent to the database.
+	// Using "%+v" prints the struct with field names for clarity.
+	logger.DataRepoLog.Infof("[DB Write] Storing AuthEvent data: %+v", putData)
+
 	_, errPutOne := CommonDBClient.RestfulAPIPutOne(collName, filter, putData)
 	if errPutOne != nil {
 		logger.DataRepoLog.Warnln(errPutOne)
