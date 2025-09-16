@@ -14,6 +14,7 @@ import (
 
 	protos "github.com/5GC-DEV/config5g-cdac/proto/sdcoreConfig"
 	jsonpatch "github.com/evanphx/json-patch"
+	"github.com/google/uuid"
 	"github.com/mitchellh/mapstructure"
 	"github.com/omec-project/openapi/models"
 	udr_context "github.com/omec-project/udr/context"
@@ -555,36 +556,52 @@ func QueryAuthSoRProcedure(collName string, ueId string) (map[string]interface{}
 func HandleCreateAuthenticationStatus(request *httpwrapper.Request) *httpwrapper.Response {
 	logger.DataRepoLog.Infoln("handle CreateAuthenticationStatus")
 
-	putData := util.ToBsonM(request.Body)
+	authEvent := request.Body.(models.AuthEvent)
 	ueId := request.Params["ueId"]
 	collName := "subscriptionData.authenticationData.authenticationStatus"
 
-	err := CreateAuthenticationStatusProcedure(collName, ueId, putData)
-	if err == nil {
-		stats.IncrementUdrSubscriptionDataStats("create", "authentication-status", "SUCCESS")
-	} else {
+	createdEvent, err := CreateAuthenticationStatusProcedure(collName, ueId, authEvent)
+	if err != nil {
 		stats.IncrementUdrSubscriptionDataStats("create", "authentication-status", "FAILURE")
+		problemDetails := models.ProblemDetails{
+			Title:  "System failure",
+			Status: http.StatusInternalServerError,
+			Detail: err.Error(),
+			Cause:  "DATABASE_ERROR",
+		}
+		return httpwrapper.NewResponse(http.StatusInternalServerError, nil, problemDetails)
 	}
 
-	return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
+	stats.IncrementUdrSubscriptionDataStats("create", "authentication-status", "SUCCESS")
+
+	locationURI := fmt.Sprintf("%s/subscription-data/%s/authentication-data/authentication-status",
+		udr_context.UDR_Self().GetIPv4GroupUri(udr_context.NUDR_DR), ueId)
+
+	headers := http.Header{}
+	headers.Set("Location", locationURI)
+
+	logger.DataRepoLog.Infof("[HandleCreateAuthStatus] Sending 201 Created to UDM for SUPI [%s]", ueId)
+	logger.DataRepoLog.Infof("[HandleCreateAuthStatus] -> Location Header: %s", locationURI)
+
+	return httpwrapper.NewResponse(http.StatusCreated, headers, createdEvent)
 }
 
-func CreateAuthenticationStatusProcedure(collName string, ueId string, putData bson.M) error {
-	filter := bson.M{"ueId": ueId}
+func CreateAuthenticationStatusProcedure(collName string, ueId string, authEvent models.AuthEvent) (models.AuthEvent, error) {
+	authEvent.AuthEventId = uuid.New().String()
+	putData := util.ToBsonM(authEvent)
 	putData["ueId"] = ueId
+
+	filter := bson.M{"ueId": ueId, "authEventId": authEvent.AuthEventId}
 
 	logger.DataRepoLog.Infof("[DB Write] Preparing to write to MongoDB.")
 	logger.DataRepoLog.Infof("[DB Write] Targeting MongoDB collection: %s", collName)
-
-	// Log the full data structure that is being sent to the database.
-	// Using "%+v" prints the struct with field names for clarity.
 	logger.DataRepoLog.Infof("[DB Write] Storing AuthEvent data: %+v", putData)
 
 	_, errPutOne := CommonDBClient.RestfulAPIPutOne(collName, filter, putData)
 	if errPutOne != nil {
-		logger.DataRepoLog.Warnln(errPutOne)
+		logger.DataRepoLog.Errorf("Error writing AuthEvent to DB: %+v", errPutOne)
 	}
-	return errPutOne
+	return authEvent, errPutOne
 }
 
 func HandleQueryAuthenticationStatus(request *httpwrapper.Request) *httpwrapper.Response {
