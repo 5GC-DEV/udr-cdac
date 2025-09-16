@@ -574,14 +574,15 @@ func HandleCreateAuthenticationStatus(request *httpwrapper.Request) *httpwrapper
 
 	stats.IncrementUdrSubscriptionDataStats("create", "authentication-status", "SUCCESS")
 
-	locationURI := fmt.Sprintf("%s/subscription-data/%s/authentication-data/authentication-status",
-		udr_context.UDR_Self().GetIPv4GroupUri(udr_context.NUDR_DR), ueId)
+	locationURI := fmt.Sprintf("%s/subscription-data/%s/authentication-data/authentication-status/%s",
+		udr_context.UDR_Self().GetIPv4GroupUri(udr_context.NUDR_DR), ueId, createdEvent.AuthEventId)
 
 	headers := http.Header{}
 	headers.Set("Location", locationURI)
 
 	logger.DataRepoLog.Infof("[HandleCreateAuthStatus] Sending 201 Created to UDM for SUPI [%s]", ueId)
 	logger.DataRepoLog.Infof("[HandleCreateAuthStatus] -> Location Header: %s", locationURI)
+	logger.DataRepoLog.Infof("[HandleCreateAuthStatus] -> Response Body: %+v", createdEvent)
 
 	return httpwrapper.NewResponse(http.StatusCreated, headers, createdEvent)
 }
@@ -601,7 +602,7 @@ func CreateAuthenticationStatusProcedure(collName string, ueId string, authEvent
 	if errPutOne != nil {
 		logger.DataRepoLog.Errorf("Error writing AuthEvent to DB: %+v", errPutOne)
 	}
-	return authEvent, errPutOne
+	return authEvent, nil
 }
 
 func HandleQueryAuthenticationStatus(request *httpwrapper.Request) *httpwrapper.Response {
