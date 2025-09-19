@@ -6,6 +6,7 @@ package producer
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -38,6 +39,7 @@ const (
 	SUBSCDATA_CTXDATA_SMF_REGISTRATION         = "subscriptionData.contextData.smfRegistrations"
 	SUBSCDATA_CTXDATA_SMSF_3GPPACCESS          = "subscriptionData.contextData.smsf3gppAccess"
 	SUBSCDATA_CTXDATA_SMSF_NON3GPPACCESS       = "subscriptionData.contextData.smsfNon3gppAccess"
+	SUBSCDATA_AUTHDATA_AUTHSTATUS              = "subscriptionData.authenticationData.authenticationStatus"
 )
 
 var CurrentResourceUri string
@@ -242,11 +244,12 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 	ueId := request.Params["ueId"]
 	collName := SUBSCDATA_CTXDATA_AMF_3GPPACCESS
 
-	err := CreateAmfContext3gppProcedure(collName, ueId, Amf3GppAccessRegistration)
+	problemDetails, err := CreateAmfContext3gppProcedure(collName, ueId, Amf3GppAccessRegistration)
 	if err == nil {
 		stats.IncrementUdrSubscriptionDataStats("create", "amf-3gpp-access", "SUCCESS")
 	} else {
 		stats.IncrementUdrSubscriptionDataStats("create", "amf-3gpp-access", "FAILURE")
+		return httpwrapper.NewResponse(http.StatusForbidden, nil, problemDetails)
 	}
 
 	return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
@@ -254,7 +257,21 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 
 func CreateAmfContext3gppProcedure(collName string, ueId string,
 	Amf3GppAccessRegistration models.Amf3GppAccessRegistration,
-) error {
+) (*models.ProblemDetails, error) {
+	colleName := SUBSCDATA_AUTHDATA_AUTHSTATUS
+	filters := bson.M{"ueId": ueId}
+	data, errGetOne := AuthDBClient.RestfulAPIGetOne(colleName, filters)
+
+	if errGetOne != nil {
+		logger.DataRepoLog.Warnln(errGetOne)
+	}
+	if data != nil {
+		logger.DataRepoLog.Debugln("ueId found from mongodb")
+	} else {
+		logger.DataRepoLog.Debugln("ueId not found from mongodb")
+		return util.ProblemDetailsNotFound("SUBSCRIPTION_NOT_FOUND"), errors.New("no required subscription data")
+	}
+
 	filter := bson.M{"ueId": ueId}
 	putData := util.ToBsonM(Amf3GppAccessRegistration)
 	putData["ueId"] = ueId
@@ -263,7 +280,7 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 	if errPutOne != nil {
 		logger.DataRepoLog.Warnln(errPutOne)
 	}
-	return errPutOne
+	return nil, errPutOne
 }
 
 func HandleQueryAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Response {
