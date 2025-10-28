@@ -14,9 +14,10 @@ import (
 	"strings"
 
 	protos "github.com/5GC-DEV/config5g-cdac/proto/sdcoreConfig"
+	"github.com/5GC-DEV/openapi-cdac/models"
 	jsonpatch "github.com/evanphx/json-patch"
+	"github.com/google/uuid"
 	"github.com/mitchellh/mapstructure"
-	"github.com/omec-project/openapi/models"
 	udr_context "github.com/omec-project/udr/context"
 	"github.com/omec-project/udr/logger"
 	stats "github.com/omec-project/udr/metrics"
@@ -569,32 +570,51 @@ func QueryAuthSoRProcedure(collName string, ueId string) (map[string]interface{}
 	}
 }
 
+// This function now builds a 201 Created response.
 func HandleCreateAuthenticationStatus(request *httpwrapper.Request) *httpwrapper.Response {
-	logger.DataRepoLog.Infoln("handle CreateAuthenticationStatus")
-
-	putData := util.ToBsonM(request.Body)
+	// The request body is now asserted as the AuthEvent model.
+	authEvent := request.Body.(models.AuthEvent)
 	ueId := request.Params["ueId"]
 	collName := "subscriptionData.authenticationData.authenticationStatus"
-
-	err := CreateAuthenticationStatusProcedure(collName, ueId, putData)
-	if err == nil {
-		stats.IncrementUdrSubscriptionDataStats("create", "authentication-status", "SUCCESS")
-	} else {
+	// The procedure call now returns the created event object and an error.
+	createdEvent, err := CreateAuthenticationStatusProcedure(collName, ueId, authEvent)
+	if err != nil {
+		// Handle database errors returned from the procedure.
 		stats.IncrementUdrSubscriptionDataStats("create", "authentication-status", "FAILURE")
+		problemDetails := models.ProblemDetails{
+			Title:  "System failure",
+			Status: http.StatusInternalServerError,
+			Detail: err.Error(),
+			Cause:  "DATABASE_ERROR",
+		}
+		return httpwrapper.NewResponse(http.StatusInternalServerError, nil, problemDetails)
 	}
 
-	return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
+	stats.IncrementUdrSubscriptionDataStats("create", "authentication-status", "SUCCESS")
+	// Construct the mandatory Location header.
+	locationURI := fmt.Sprintf("%s/subscription-data/%s/authentication-data/authentication-status",
+		udr_context.UDR_Self().GetIPv4GroupUri(udr_context.NUDR_DR), ueId)
+
+	headers := http.Header{}
+	headers.Set("Location", locationURI)
+	// Return a 201 Created response with the header and the createdEvent object in the body.
+	return httpwrapper.NewResponse(http.StatusCreated, headers, createdEvent)
 }
 
-func CreateAuthenticationStatusProcedure(collName string, ueId string, putData bson.M) error {
-	filter := bson.M{"ueId": ueId}
+// This function now generates a unique ID and returns the updated AuthEvent object.
+func CreateAuthenticationStatusProcedure(collName string, ueId string, authEvent models.AuthEvent) (models.AuthEvent, error) {
+	// Generate a unique identifier for this authentication event.
+	authEvent.AuthEventId = uuid.New().String()
+	putData := util.ToBsonM(authEvent)
 	putData["ueId"] = ueId
-
+	filter := bson.M{"ueId": ueId}
+	// Execute the database write operation.
 	_, errPutOne := CommonDBClient.RestfulAPIPutOne(collName, filter, putData)
 	if errPutOne != nil {
-		logger.DataRepoLog.Warnln(errPutOne)
+		logger.DataRepoLog.Errorf("Error writing AuthEvent to DB: %+v", errPutOne)
 	}
-	return errPutOne
+	// Return the modified authEvent (which now includes the ID) and any error.
+	return authEvent, errPutOne
 }
 
 func HandleQueryAuthenticationStatus(request *httpwrapper.Request) *httpwrapper.Response {

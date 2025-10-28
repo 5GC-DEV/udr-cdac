@@ -8,8 +8,8 @@ package callback
 import (
 	"context"
 
-	"github.com/omec-project/openapi/Nudr_DataRepository"
-	"github.com/omec-project/openapi/models"
+	"github.com/5GC-DEV/openapi-cdac/Nudr_DataRepository"
+	"github.com/5GC-DEV/openapi-cdac/models"
 	udr_context "github.com/omec-project/udr/context"
 	"github.com/omec-project/udr/logger"
 )
