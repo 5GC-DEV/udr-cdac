@@ -40,7 +40,8 @@ const (
 	SUBSCDATA_CTXDATA_SMF_REGISTRATION         = "subscriptionData.contextData.smfRegistrations"
 	SUBSCDATA_CTXDATA_SMSF_3GPPACCESS          = "subscriptionData.contextData.smsf3gppAccess"
 	SUBSCDATA_CTXDATA_SMSF_NON3GPPACCESS       = "subscriptionData.contextData.smsfNon3gppAccess"
-	SUBSCDATA_AUTHDATA_AUTHSTATUS              = "subscriptionData.authenticationData.authenticationStatus"
+	WEBCONDATA_SNAPSHOTS_DEVGROUPDATA          = "webconsoleData.snapshots.devGroupData"
+	// SUBSCDATA_AUTHDATA_AUTHSTATUS              = "subscriptionData.authenticationData.authenticationStatus"
 )
 
 var CurrentResourceUri string
@@ -259,7 +260,7 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 func CreateAmfContext3gppProcedure(collName string, ueId string,
 	Amf3GppAccessRegistration models.Amf3GppAccessRegistration,
 ) (*models.ProblemDetails, error) {
-	colleName := SUBSCDATA_AUTHDATA_AUTHSTATUS
+	colleName := WEBCONDATA_SNAPSHOTS_DEVGROUPDATA
 	filters := bson.M{"ueId": ueId}
 	data, errGetOne := AuthDBClient.RestfulAPIGetOne(colleName, filters)
 
