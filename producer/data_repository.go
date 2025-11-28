@@ -263,7 +263,7 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 	colleName := SUBSCDATA_AUTHDATA_AUTHSTATUS
 	filters := bson.M{"ueId": ueId}
 	logger.DataRepoLog.Infof("ue id: %s", ueId)
-	data, errGetOne := AuthDBClient.RestfulAPIGetOne(colleName, filters)
+    data, errGetOne := CommonDBClient.RestfulAPIGetOne(colleName, filters)
 
 	if errGetOne != nil {
 		logger.DataRepoLog.Warnln(errGetOne)
