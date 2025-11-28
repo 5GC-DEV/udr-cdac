@@ -261,11 +261,8 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 	Amf3GppAccessRegistration models.Amf3GppAccessRegistration,
 ) (*models.ProblemDetails, error) {
 	colleName := SUBSCDATA_AUTHDATA_AUTHSTATUS
-	// filters := bson.M{"ueId": ueId}
+	filters := bson.M{"ueId": ueId}
 	logger.DataRepoLog.Infof("ue id: %s", ueId)
-	formattedUeId := "imsi-" + ueId
-    filters := bson.M{"ueId": formattedUeId}
-	logger.DataRepoLog.Infof("formatted ue id: %s", formattedUeId)
 	data, errGetOne := AuthDBClient.RestfulAPIGetOne(colleName, filters)
 
 	if errGetOne != nil {
