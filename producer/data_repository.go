@@ -254,7 +254,7 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 		return httpwrapper.NewResponse(http.StatusForbidden, nil, problemDetails)
 	}
 
-	return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
+	return httpwrapper.NewResponse(http.StatusCreated, nil, map[string]interface{}{})
 }
 
 func CreateAmfContext3gppProcedure(collName string, ueId string,
