@@ -262,17 +262,19 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 ) (*models.ProblemDetails, error) {
 	colleName := SUBSCDATA_AUTHDATA_AUTHSTATUS
 	// filters := bson.M{"ueId": ueId}
+	logger.DataRepoLog.Infof("ue id: %s", ueId)
 	formattedUeId := "imsi-" + ueId
     filters := bson.M{"ueId": formattedUeId}
+	logger.DataRepoLog.Infof("formatted ue id: %s", formattedUeId)
 	data, errGetOne := AuthDBClient.RestfulAPIGetOne(colleName, filters)
 
 	if errGetOne != nil {
 		logger.DataRepoLog.Warnln(errGetOne)
 	}
 	if data != nil {
-		logger.DataRepoLog.Debugln("ueId found from mongodb")
+		logger.DataRepoLog.Infoln("ueId found from mongodb")
 	} else {
-		logger.DataRepoLog.Debugln("ueId not found from mongodb")
+		logger.DataRepoLog.Infoln("ueId not found from mongodb")
 		return util.ProblemDetailsNotFound("SUBSCRIPTION_NOT_FOUND"), errors.New("no required subscription data")
 	}
 
