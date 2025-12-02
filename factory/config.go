@@ -116,6 +116,7 @@ func (c *Config) addSmPolicyInfo(nwSlice *protos.NetworkSlice, dbUpdateChannel c
 	}
 	return nil
 }
+
 func (c *Config) UpdateConfig(commChannel chan *protos.NetworkSliceResponse, dbUpdateChannel chan *UpdateDb) bool {
 	var minConfig bool
 	for rsp := range commChannel {
