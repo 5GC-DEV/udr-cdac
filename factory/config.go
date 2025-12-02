@@ -91,13 +91,20 @@ func (c *Config) GetVersion() string {
 }
 
 func (c *Config) addSmPolicyInfo(nwSlice *protos.NetworkSlice, dbUpdateChannel chan *UpdateDb) error {
-	for _, devGrp := range nwSlice.DeviceGroup {
+	// Log the slice being processed
+	logger.GrpcLog.Infof("Processing Slice: Name=%s, S-NSSAI=%+v", nwSlice.Name, nwSlice.Nssai)
+	if nwSlice.Site != nil {
+		logger.GrpcLog.Infof("  Site=%s, PLMN=%s-%s", nwSlice.Site.SiteName, nwSlice.Site.Plmn.Mcc, nwSlice.Site.Plmn.Mnc)
+	}
+	// Log device groups
+	for i, devGrp := range nwSlice.DeviceGroup {
+		logger.GrpcLog.Infof("DeviceGroup[%d]: IMSIs=%v, IpDomainCount=%d", i, devGrp.Imsi, len(devGrp.IpDomainDetails))
 		for _, imsi := range devGrp.Imsi {
-			// Iterate over the IpDomainDetails slice
-			for _, ipDomain := range devGrp.IpDomainDetails {
+			for j, ipDomain := range devGrp.IpDomainDetails {
+				logger.GrpcLog.Infof("IpDomain[%d]: DNN=%s", j, ipDomain.DnnName)
 				smPolicyEntry := &SmPolicyUpdateEntry{
 					Imsi:   imsi,
-					Dnn:    ipDomain.DnnName, // Access DnnName from the IpDomain struct
+					Dnn:    ipDomain.DnnName,
 					Snssai: nwSlice.Nssai,
 				}
 				dbUpdate := &UpdateDb{
@@ -109,7 +116,6 @@ func (c *Config) addSmPolicyInfo(nwSlice *protos.NetworkSlice, dbUpdateChannel c
 	}
 	return nil
 }
-
 func (c *Config) UpdateConfig(commChannel chan *protos.NetworkSliceResponse, dbUpdateChannel chan *UpdateDb) bool {
 	var minConfig bool
 	for rsp := range commChannel {
