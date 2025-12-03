@@ -182,7 +182,7 @@ func HandleQueryAmData(request *httpwrapper.Request) *httpwrapper.Response {
 	}
 }
 
-func QueryAmDataProcedure(collName string, ueId string, servingPlmnId string) (*map[string]interface{},
+/*func QueryAmDataProcedure(collName string, ueId string, servingPlmnId string) (*map[string]interface{},
 	*models.ProblemDetails,
 ) {
 	filter := bson.M{"ueId": ueId, "servingPlmnId": servingPlmnId}
@@ -195,6 +195,30 @@ func QueryAmDataProcedure(collName string, ueId string, servingPlmnId string) (*
 	} else {
 		return nil, util.ProblemDetailsNotFound("USER_NOT_FOUND")
 	}
+} */
+
+func QueryAmDataProcedure(collName string, ueId string, servingPlmnId string) (
+	*map[string]interface{}, *models.ProblemDetails,
+) {
+	filter := bson.M{"ueId": ueId, "servingPlmnId": servingPlmnId}
+
+	// Log the query filter
+	logger.DataRepoLog.Infof("QueryAmDataProcedure: Collection[%s], Filter=%v", collName, filter)
+
+	accessAndMobilitySubscriptionData, errGetOne := CommonDBClient.RestfulAPIGetOne(collName, filter)
+	if errGetOne != nil {
+		logger.DataRepoLog.Warnf("QueryAmDataProcedure: Error fetching data: %v", errGetOne)
+	}
+
+	if accessAndMobilitySubscriptionData != nil {
+		// Log returned data
+		logger.DataRepoLog.Debugf("QueryAmDataProcedure: Retrieved Document: %+v", accessAndMobilitySubscriptionData)
+		return &accessAndMobilitySubscriptionData, nil
+	}
+
+	// Log not found case
+	logger.DataRepoLog.Warnf("QueryAmDataProcedure: No document found for Filter=%v", filter)
+	return nil, util.ProblemDetailsNotFound("USER_NOT_FOUND")
 }
 
 func HandleAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Response {
