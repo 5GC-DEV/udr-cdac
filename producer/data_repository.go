@@ -1622,8 +1622,25 @@ func HandlePolicyDataUesUeIdSmDataGet(request *httpwrapper.Request) *httpwrapper
 
 	response, problemDetails := PolicyDataUesUeIdSmDataGetProcedure(collName, ueId, sNssai, dnn)
 	if response != nil {
+		// Debug log response data
+		if b, err := json.Marshal(response); err == nil {
+			logger.DataRepoLog.Infof(
+				"PolicyDataUesUeIdSmDataGet response for ueId=%s, snssai=%+v, dnn=%s: %s",
+				ueId, sNssai, dnn, string(b),
+			)
+		} else {
+			logger.DataRepoLog.Infof(
+				"PolicyDataUesUeIdSmDataGet response (unmarshal failed) for ueId=%s: %+v",
+				ueId, response,
+			)
+		}
+
 		stats.IncrementUdrPolicyDataStats("get", "sm-data", "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
+
+		/*if response != nil {
+		stats.IncrementUdrPolicyDataStats("get", "sm-data", "SUCCESS")
+		return httpwrapper.NewResponse(http.StatusOK, nil, response)*/
 	} else if problemDetails != nil {
 		stats.IncrementUdrPolicyDataStats("get", "sm-data", "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
