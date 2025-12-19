@@ -3140,13 +3140,26 @@ func QuerySmDataProcedure(collName string, ueId string, servingPlmnId string,
 
 func HandleCreateSmfContextNon3gpp(request *httpwrapper.Request) *httpwrapper.Response {
 	logger.DataRepoLog.Infoln("handle CreateSmfContextNon3gpp")
+	logger.DataRepoLog.Infof("Request params: %+v", request.Params)
 
 	SmfRegistration := request.Body.(models.SmfRegistration)
 	collName := SUBSCDATA_CTXDATA_SMF_REGISTRATION
 	ueId := request.Params["ueId"]
-	pduSessionId, err := strconv.ParseInt(request.Params["pduSessionId"], 10, 64)
+	/*pduSessionId, err := strconv.ParseInt(request.Params["pduSessionId"], 10, 64)
 	if err != nil {
 		logger.DataRepoLog.Warnln(err)
+	}*/
+	pduSessionIdStr := request.Params["smfRegistrationId"]
+	pduSessionId, err := strconv.ParseInt(pduSessionIdStr, 10, 64)
+	if err != nil {
+		logger.DataRepoLog.Errorf(
+			"Invalid smfRegistrationId ueId=%s value=%q err=%v",
+			ueId,
+			pduSessionIdStr,
+			err,
+		)
+		pd := util.ProblemDetailsMalformedReqSyntax("invalid smfRegistrationId")
+		return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 	}
 
 	response, status := CreateSmfContextNon3gppProcedure(SmfRegistration, collName, ueId, pduSessionId)
