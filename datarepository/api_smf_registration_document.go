@@ -26,7 +26,7 @@ import (
 )
 
 // HTTPCreateSmfContextNon3gpp - To create an individual SMF context data of a UE in the UDR
-func HTTPCreateSmfContextNon3gpp(c *gin.Context) {
+/*func HTTPCreateSmfContextNon3gpp(c *gin.Context) {
 	var smfRegistration models.SmfRegistration
 
 	requestBody, err := c.GetRawData()
@@ -72,6 +72,62 @@ func HTTPCreateSmfContextNon3gpp(c *gin.Context) {
 	} else {
 		c.Data(rsp.Status, "application/json", responseBody)
 	}
+}*/
+
+func HTTPCreateSmfContextNon3gpp(c *gin.Context) {
+	var smfRegistration models.SmfRegistration
+
+	requestBody, err := c.GetRawData()
+	if err != nil {
+		problemDetail := models.ProblemDetails{
+			Title:  "System failure",
+			Status: http.StatusInternalServerError,
+			Detail: err.Error(),
+			Cause:  "SYSTEM_FAILURE",
+		}
+		logger.DataRepoLog.Errorf("Get Request Body error: %+v", err)
+		c.JSON(http.StatusInternalServerError, problemDetail)
+		return
+	}
+
+	// 🔍 LOG REQUEST BODY
+	logger.DataRepoLog.Infof(
+		"CreateSmfContextNon3gpp request body ueId=%s body=%s",
+		c.Params.ByName("ueId"),
+		string(requestBody),
+	)
+
+	err = openapi.Deserialize(&smfRegistration, requestBody, "application/json")
+	if err != nil {
+		problemDetail := "[Request Body] " + err.Error()
+		rsp := models.ProblemDetails{
+			Title:  "Malformed request syntax",
+			Status: http.StatusBadRequest,
+			Detail: problemDetail,
+		}
+		logger.DataRepoLog.Errorln(problemDetail)
+		c.JSON(http.StatusBadRequest, rsp)
+		return
+	}
+
+	req := httpwrapper.NewRequest(c.Request, smfRegistration)
+	req.Params["ueId"] = c.Params.ByName("ueId")
+
+	rsp := producer.HandleCreateSmfContextNon3gpp(req)
+
+	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	if err != nil {
+		logger.DataRepoLog.Errorln(err)
+		problemDetails := models.ProblemDetails{
+			Status: http.StatusInternalServerError,
+			Cause:  "SYSTEM_FAILURE",
+			Detail: err.Error(),
+		}
+		c.JSON(http.StatusInternalServerError, problemDetails)
+		return
+	}
+
+	c.Data(rsp.Status, "application/json", responseBody)
 }
 
 // HTTPDeleteSmfContext - To remove an individual SMF context data of a UE the UDR
