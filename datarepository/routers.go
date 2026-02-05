@@ -548,7 +548,7 @@ var routes = Routes{
 	{
 		"HTTPCreateSmfContextNon3gpp",
 		strings.ToUpper("Put"),
-		"/subscription-data/:ueId/:servingPlmnId/smf-registrations/:pduSessionId",
+		"/subscription-data/:ueId/context-data/smf-registrations/:pduSessionId",
 		HTTPCreateSmfContextNon3gpp,
 	},
 

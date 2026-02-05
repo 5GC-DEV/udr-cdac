@@ -56,8 +56,8 @@ func HTTPCreateSmfContextNon3gpp(c *gin.Context) {
 	}
 
 	req := httpwrapper.NewRequest(c.Request, smfRegistration)
-	req.Params["ueId"] = c.Params.ByName("ueId")
-
+	req.Params["ueId"] = c.Param("ueId")
+	req.Params["smfRegistrationId"] = c.Param("pduSessionId")
 	rsp := producer.HandleCreateSmfContextNon3gpp(req)
 
 	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
