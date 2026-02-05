@@ -41,6 +41,7 @@ const (
 	SUBSCDATA_CTXDATA_SMSF_3GPPACCESS          = "subscriptionData.contextData.smsf3gppAccess"
 	SUBSCDATA_CTXDATA_SMSF_NON3GPPACCESS       = "subscriptionData.contextData.smsfNon3gppAccess"
 	SUBSCDATA_AUTHDATA_AUTHSTATUS              = "subscriptionData.authenticationData.authenticationStatus"
+	SUBSCDATA_PROVISION_SMDATA                 = "subscriptionData.provisionedData.smData"
 )
 
 var CurrentResourceUri string
@@ -3132,6 +3133,11 @@ func HandleCreateSmfContextNon3gpp(request *httpwrapper.Request) *httpwrapper.Re
 		logger.DataRepoLog.Warnln(err)
 	}
 
+	if !IsUeSupported(ueId) {
+		pd := util.ProblemDetailsNotFound("UE not found")
+		return httpwrapper.NewResponse(http.StatusNotFound, nil, pd)
+	}
+
 	response, status := CreateSmfContextNon3gppProcedure(SmfRegistration, collName, ueId, pduSessionId)
 
 	switch status {
@@ -3166,6 +3172,19 @@ func CreateSmfContextNon3gppProcedure(SmfRegistration models.SmfRegistration,
 	} else {
 		return putData, http.StatusOK
 	}
+}
+
+func IsUeSupported(ueId string) bool {
+	collName := SUBSCDATA_PROVISION_SMDATA
+	filter := bson.M{"ueId": ueId}
+
+	ueData, err := CommonDBClient.RestfulAPIGetOne(collName, filter)
+	if err != nil {
+		logger.DataRepoLog.Warnln(err)
+		return false
+	}
+
+	return ueData != nil
 }
 
 func HandleDeleteSmfContext(request *httpwrapper.Request) *httpwrapper.Response {
