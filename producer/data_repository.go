@@ -246,20 +246,25 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 	ueId := request.Params["ueId"]
 	collName := SUBSCDATA_CTXDATA_AMF_3GPPACCESS
 
-	problemDetails, err := CreateAmfContext3gppProcedure(collName, ueId, Amf3GppAccessRegistration)
-	if err == nil {
-		stats.IncrementUdrSubscriptionDataStats("create", "amf-3gpp-access", "SUCCESS")
-	} else {
+	problemDetails, ok, exists, err := CreateAmfContext3gppProcedure(collName, ueId, Amf3GppAccessRegistration)
+	if err != nil {
 		stats.IncrementUdrSubscriptionDataStats("create", "amf-3gpp-access", "FAILURE")
 		return httpwrapper.NewResponse(http.StatusForbidden, nil, problemDetails)
 	}
-
+	if exists {
+		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
+	}
+	if !ok {
+		logger.DataRepoLog.Debugln("PUT request failed")
+	}
+	stats.IncrementUdrSubscriptionDataStats("create", "amf-3gpp-access", "SUCCESS")
 	return httpwrapper.NewResponse(http.StatusCreated, nil, map[string]interface{}{})
 }
 
 func CreateAmfContext3gppProcedure(collName string, ueId string,
 	Amf3GppAccessRegistration models.Amf3GppAccessRegistration,
-) (*models.ProblemDetails, error) {
+) (*models.ProblemDetails, bool, bool, error) {
+	var exists bool
 	colleName := SUBSCDATA_AUTHDATA_AUTHSTATUS
 	filters := bson.M{"ueId": ueId}
 	data, errGetOne := CommonDBClient.RestfulAPIGetOne(colleName, filters)
@@ -271,18 +276,27 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 		logger.DataRepoLog.Debugln("ueId found from mongodb")
 	} else {
 		logger.DataRepoLog.Debugln("ueId not found from mongodb")
-		return util.ProblemDetailsNotFound("SUBSCRIPTION_NOT_FOUND"), errors.New("no required subscription data")
+		return util.ProblemDetailsNotFound("SUBSCRIPTION_NOT_FOUND"), false, false, errors.New("no required subscription data")
 	}
 
 	filter := bson.M{"ueId": ueId}
 	putData := util.ToBsonM(Amf3GppAccessRegistration)
 	putData["ueId"] = ueId
 
-	_, errPutOne := CommonDBClient.RestfulAPIPutOne(collName, filter, putData)
+	data, errGet := CommonDBClient.RestfulAPIGetOne(collName, filter)
+	if errGet != nil {
+		logger.DataRepoLog.Warnln(errGet)
+	}
+	if data != nil {
+		logger.DataRepoLog.Debugln("ueId exist")
+		exists = true
+	}
+
+	ok, errPutOne := CommonDBClient.RestfulAPIPutOne(collName, filter, putData)
 	if errPutOne != nil {
 		logger.DataRepoLog.Warnln(errPutOne)
 	}
-	return nil, errPutOne
+	return nil, ok, exists, errPutOne
 }
 
 func HandleQueryAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Response {
@@ -3117,6 +3131,14 @@ func QuerySmDataProcedure(collName string, ueId string, servingPlmnId string,
 	sessionManagementSubscriptionDatas, errGetMany := CommonDBClient.RestfulAPIGetMany(collName, filter)
 	if errGetMany != nil {
 		logger.DataRepoLog.Warnln(errGetMany)
+	}
+
+	for _, doc := range sessionManagementSubscriptionDatas {
+		for key, value := range doc {
+			if value == nil {
+				delete(doc, key)
+			}
+		}
 	}
 
 	return &sessionManagementSubscriptionDatas

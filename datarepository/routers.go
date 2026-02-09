@@ -148,7 +148,7 @@ func expoMsgDispatchHandlerFunc(c *gin.Context) {
 }
 
 func AddService(engine *gin.Engine) *gin.RouterGroup {
-	group := engine.Group("/nudr-dr/v1")
+	group := engine.Group("/nudr-dr/v2")
 
 	for _, route := range routes {
 		switch route.Method {
