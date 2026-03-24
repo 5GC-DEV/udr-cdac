@@ -115,7 +115,7 @@ func toBsonM(data interface{}) (ret bson.M) {
 	if err != nil {
 		logger.CfgLog.Infoln("unmarshal fail", err)
 	}
-	return
+	return ret
 }
 
 // AddEntrySmPolicyTable ... write table entries into policyData.ues.smData
@@ -1704,6 +1704,7 @@ func PolicyDataUesUeIdSmDataGetProcedure(collName string, ueId string, snssai mo
 		return nil, util.ProblemDetailsNotFound("USER_NOT_FOUND")
 	}
 }
+
 func SmDataGetProcedureSmPolicyDataResponse(
 	ueId string,
 	smPolicyData map[string]interface{},
@@ -1735,6 +1736,7 @@ func SmDataGetProcedureSmPolicyDataResponse(
 	}
 	return &smPolicyDataResp, nil
 }
+
 func HandlePolicyDataUesUeIdSmDataPatch(request *httpwrapper.Request) *httpwrapper.Response {
 	logger.DataRepoLog.Infoln("handle PolicyDataUesUeIdSmDataPatch")
 
@@ -1778,6 +1780,7 @@ func PolicyDataUesUeIdSmDataPatchProcedure(collName string, ueId string,
 	}
 	return SmDataPatchProcedureSuccessAll(successAll, collName, ueId, filter)
 }
+
 func SmDataPatchProcedureSuccessAll(
 	successAll bool,
 	collName string,
@@ -1820,6 +1823,7 @@ func SmDataPatchProcedureSuccessAll(
 		return util.ProblemDetailsModifyNotAllowed("")
 	}
 }
+
 func HandlePolicyDataUesUeIdSmDataUsageMonIdDelete(request *httpwrapper.Request) *httpwrapper.Response {
 	logger.DataRepoLog.Infoln("handle PolicyDataUesUeIdSmDataUsageMonIdDelete")
 
@@ -2787,6 +2791,7 @@ func QueryProvisionedDataProcedure(
 		return nil, util.ProblemDetailsNotFound("USER_NOT_FOUND")
 	}
 }
+
 func decodeIfNotNil(data interface{}, out interface{}) bool {
 	if data != nil {
 		if err := mapstructure.Decode(data, out); err != nil {
@@ -2796,6 +2801,7 @@ func decodeIfNotNil(data interface{}, out interface{}) bool {
 	}
 	return false
 }
+
 func HandleModifyPpData(request *httpwrapper.Request) *httpwrapper.Response {
 	logger.DataRepoLog.Infoln("handle ModifyPpData")
 

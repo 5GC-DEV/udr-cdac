@@ -137,11 +137,11 @@ func manageGrpcClient(webuiUri string) {
 		}
 	}
 }
+
 func handleConnectivity(
 	client grpcClient.ConfClient,
 	count int,
 ) (grpcClient.ConfClient, int, bool) {
-
 	if client.CheckGrpcConnectivity() != "READY" {
 		time.Sleep(time.Second * 30)
 		count++
@@ -161,6 +161,7 @@ func handleConnectivity(
 
 	return client, count, false
 }
+
 func handleStreamAndChannel(
 	client grpcClient.ConfClient,
 	stream protos.ConfigService_NetworkSliceSubscribeClient,
@@ -170,7 +171,6 @@ func handleStreamAndChannel(
 	chan *protos.NetworkSliceResponse,
 	bool,
 ) {
-
 	if stream == nil {
 		var err error
 		stream, err = client.SubscribeToConfigServer()
@@ -190,6 +190,7 @@ func handleStreamAndChannel(
 
 	return stream, configChannel, true
 }
+
 func (udr *UDR) setLogLevel() {
 	if factory.UdrConfig.Logger == nil {
 		logger.InitLog.Warnln("UDR config without log level setting")
@@ -213,6 +214,7 @@ func (udr *UDR) setLogLevel() {
 	}
 	setMongoDBLibLogLevel()
 }
+
 func setMongoDBLibLogLevel() {
 	if factory.UdrConfig.Logger.MongoDBLibrary != nil {
 		if factory.UdrConfig.Logger.MongoDBLibrary.DebugLevel != "" {

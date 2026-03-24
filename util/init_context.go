@@ -48,6 +48,7 @@ func InitUdrContext(context *context.UDRContext) {
 		context.NrfUri = fmt.Sprintf("%s://%s:%d", context.UriScheme, "127.0.0.1", 29510)
 	}
 }
+
 func setBindingIPv4(context *context.UDRContext, sbi *factory.Sbi) {
 	context.BindingIPv4 = os.Getenv(sbi.BindingIPv4)
 	if context.BindingIPv4 != "" {
