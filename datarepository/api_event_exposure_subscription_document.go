@@ -25,6 +25,7 @@ import (
 	"github.com/omec-project/util/httpwrapper"
 )
 
+// const ContentTypeJSON = "application/json"
 // HTTPRemoveeeSubscriptions - Deletes a eeSubscription
 func HTTPRemoveeeSubscriptions(c *gin.Context) {
 	req := httpwrapper.NewRequest(c.Request, nil)
@@ -33,7 +34,7 @@ func HTTPRemoveeeSubscriptions(c *gin.Context) {
 
 	rsp := producer.HandleRemoveeeSubscriptions(req)
 
-	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	responseBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
@@ -43,7 +44,7 @@ func HTTPRemoveeeSubscriptions(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, problemDetails)
 	} else {
-		c.Data(rsp.Status, "application/json", responseBody)
+		c.Data(rsp.Status, ContentTypeJSON, responseBody)
 	}
 }
 
@@ -64,7 +65,7 @@ func HTTPUpdateEesubscriptions(c *gin.Context) {
 		return
 	}
 
-	err = openapi.Deserialize(&eeSubscription, requestBody, "application/json")
+	err = openapi.Deserialize(&eeSubscription, requestBody, ContentTypeJSON)
 	if err != nil {
 		problemDetail := "[Request Body] " + err.Error()
 		rsp := models.ProblemDetails{
@@ -83,7 +84,7 @@ func HTTPUpdateEesubscriptions(c *gin.Context) {
 
 	rsp := producer.HandleUpdateEesubscriptions(req)
 
-	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	responseBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
@@ -93,6 +94,6 @@ func HTTPUpdateEesubscriptions(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, problemDetails)
 	} else {
-		c.Data(rsp.Status, "application/json", responseBody)
+		c.Data(rsp.Status, ContentTypeJSON, responseBody)
 	}
 }

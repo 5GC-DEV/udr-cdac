@@ -25,6 +25,7 @@ import (
 	"github.com/omec-project/util/httpwrapper"
 )
 
+// const ContentTypeJSON = "application/json"
 // HTTPCreateSdmSubscriptions - Create individual sdm subscription
 func HTTPCreateSdmSubscriptions(c *gin.Context) {
 	var sdmSubscription models.SdmSubscription
@@ -42,7 +43,7 @@ func HTTPCreateSdmSubscriptions(c *gin.Context) {
 		return
 	}
 
-	err = openapi.Deserialize(&sdmSubscription, requestBody, "application/json")
+	err = openapi.Deserialize(&sdmSubscription, requestBody, ContentTypeJSON)
 	if err != nil {
 		problemDetail := "[Request Body] " + err.Error()
 		rsp := models.ProblemDetails{
@@ -63,7 +64,7 @@ func HTTPCreateSdmSubscriptions(c *gin.Context) {
 	for key, val := range rsp.Header {
 		c.Header(key, val[0])
 	}
-	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	responseBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
@@ -73,7 +74,7 @@ func HTTPCreateSdmSubscriptions(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, problemDetails)
 	} else {
-		c.Data(rsp.Status, "application/json", responseBody)
+		c.Data(rsp.Status, ContentTypeJSON, responseBody)
 	}
 }
 
@@ -84,7 +85,7 @@ func HTTPQuerysdmsubscriptions(c *gin.Context) {
 
 	rsp := producer.HandleQuerysdmsubscriptions(req)
 
-	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	responseBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
@@ -94,6 +95,6 @@ func HTTPQuerysdmsubscriptions(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, problemDetails)
 	} else {
-		c.Data(rsp.Status, "application/json", responseBody)
+		c.Data(rsp.Status, ContentTypeJSON, responseBody)
 	}
 }

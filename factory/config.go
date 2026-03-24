@@ -19,6 +19,7 @@ import (
 
 const (
 	UDR_EXPECTED_CONFIG_VERSION = "1.0.0"
+	MsgSendConfigTrigger        = "send config trigger to main routine"
 )
 
 type Config struct {
@@ -149,17 +150,17 @@ func (c *Config) UpdateConfig(commChannel chan *protos.NetworkSliceResponse, dbU
 			if len(UdrConfig.Configuration.PlmnSupportList) > 0 {
 				minConfig = true
 				ConfigPodTrigger <- true
-				logger.GrpcLog.Infoln("send config trigger to main routine")
+				logger.GrpcLog.Infoln(MsgSendConfigTrigger)
 			}
 		} else {
 			// all slices deleted
 			if len(UdrConfig.Configuration.PlmnSupportList) == 0 {
 				minConfig = false
 				ConfigPodTrigger <- false
-				logger.GrpcLog.Infoln("send config trigger to main routine")
+				logger.GrpcLog.Infoln(MsgSendConfigTrigger)
 			} else {
 				ConfigPodTrigger <- true
-				logger.GrpcLog.Infoln("send config trigger to main routine")
+				logger.GrpcLog.Infoln(MsgSendConfigTrigger)
 			}
 		}
 	}

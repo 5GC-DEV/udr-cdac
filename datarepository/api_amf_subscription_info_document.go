@@ -25,6 +25,7 @@ import (
 	"github.com/omec-project/util/httpwrapper"
 )
 
+// const ContentTypeJSON = "application/json"
 // HTTPModifyAmfSubscriptionInfo - modify the AMF Subscription Info
 func HTTPModifyAmfSubscriptionInfo(c *gin.Context) {
 	var patchItemArray []models.PatchItem
@@ -42,7 +43,7 @@ func HTTPModifyAmfSubscriptionInfo(c *gin.Context) {
 		return
 	}
 
-	err = openapi.Deserialize(&patchItemArray, requestBody, "application/json")
+	err = openapi.Deserialize(&patchItemArray, requestBody, ContentTypeJSON)
 	if err != nil {
 		problemDetail := "[Request Body] " + err.Error()
 		rsp := models.ProblemDetails{
@@ -61,7 +62,7 @@ func HTTPModifyAmfSubscriptionInfo(c *gin.Context) {
 
 	rsp := producer.HandleModifyAmfSubscriptionInfo(req)
 
-	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	responseBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
@@ -71,6 +72,6 @@ func HTTPModifyAmfSubscriptionInfo(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, problemDetails)
 	} else {
-		c.Data(rsp.Status, "application/json", responseBody)
+		c.Data(rsp.Status, ContentTypeJSON, responseBody)
 	}
 }

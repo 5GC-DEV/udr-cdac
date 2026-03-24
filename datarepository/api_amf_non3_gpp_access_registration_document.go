@@ -25,6 +25,8 @@ import (
 	"github.com/omec-project/util/httpwrapper"
 )
 
+// const ContentTypeJSON = "application/json"
+
 // HTTPAmfContextNon3gpp - To modify the AMF context data of a UE using non 3gpp access in the UDR
 func HTTPAmfContextNon3gpp(c *gin.Context) {
 	var patchItemArray []models.PatchItem
@@ -42,7 +44,7 @@ func HTTPAmfContextNon3gpp(c *gin.Context) {
 		return
 	}
 
-	err = openapi.Deserialize(&patchItemArray, requestBody, "application/json")
+	err = openapi.Deserialize(&patchItemArray, requestBody, ContentTypeJSON)
 	if err != nil {
 		problemDetail := "[Request Body] " + err.Error()
 		rsp := models.ProblemDetails{
@@ -60,7 +62,7 @@ func HTTPAmfContextNon3gpp(c *gin.Context) {
 
 	rsp := producer.HandleAmfContextNon3gpp(req)
 
-	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	responseBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
@@ -70,7 +72,7 @@ func HTTPAmfContextNon3gpp(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, problemDetails)
 	} else {
-		c.Data(rsp.Status, "application/json", responseBody)
+		c.Data(rsp.Status, ContentTypeJSON, responseBody)
 	}
 }
 
@@ -91,7 +93,7 @@ func HTTPCreateAmfContextNon3gpp(c *gin.Context) {
 		return
 	}
 
-	err = openapi.Deserialize(&amfNon3GppAccessRegistration, requestBody, "application/json")
+	err = openapi.Deserialize(&amfNon3GppAccessRegistration, requestBody, ContentTypeJSON)
 	if err != nil {
 		problemDetail := "[Request Body] " + err.Error()
 		rsp := models.ProblemDetails{
@@ -109,7 +111,7 @@ func HTTPCreateAmfContextNon3gpp(c *gin.Context) {
 
 	rsp := producer.HandleCreateAmfContextNon3gpp(req)
 
-	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	responseBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
@@ -119,7 +121,7 @@ func HTTPCreateAmfContextNon3gpp(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, problemDetails)
 	} else {
-		c.Data(rsp.Status, "application/json", responseBody)
+		c.Data(rsp.Status, ContentTypeJSON, responseBody)
 	}
 }
 
@@ -130,7 +132,7 @@ func HTTPQueryAmfContextNon3gpp(c *gin.Context) {
 
 	rsp := producer.HandleQueryAmfContextNon3gpp(req)
 
-	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	responseBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
@@ -140,6 +142,6 @@ func HTTPQueryAmfContextNon3gpp(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, problemDetails)
 	} else {
-		c.Data(rsp.Status, "application/json", responseBody)
+		c.Data(rsp.Status, ContentTypeJSON, responseBody)
 	}
 }

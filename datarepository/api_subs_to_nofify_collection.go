@@ -25,6 +25,7 @@ import (
 	"github.com/omec-project/util/httpwrapper"
 )
 
+// const ContentTypeJSON = "application/json"
 // HTTPPostSubscriptionDataSubscriptions - Subscription data subscriptions
 func HTTPPostSubscriptionDataSubscriptions(c *gin.Context) {
 	var subscriptionDataSubscriptions models.SubscriptionDataSubscriptions
@@ -42,7 +43,7 @@ func HTTPPostSubscriptionDataSubscriptions(c *gin.Context) {
 		return
 	}
 
-	err = openapi.Deserialize(&subscriptionDataSubscriptions, requestBody, "application/json")
+	err = openapi.Deserialize(&subscriptionDataSubscriptions, requestBody, ContentTypeJSON)
 	if err != nil {
 		problemDetail := "[Request Body] " + err.Error()
 		rsp := models.ProblemDetails{
@@ -60,7 +61,7 @@ func HTTPPostSubscriptionDataSubscriptions(c *gin.Context) {
 
 	rsp := producer.HandlePostSubscriptionDataSubscriptions(req)
 
-	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	responseBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
@@ -70,6 +71,6 @@ func HTTPPostSubscriptionDataSubscriptions(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, problemDetails)
 	} else {
-		c.Data(rsp.Status, "application/json", responseBody)
+		c.Data(rsp.Status, ContentTypeJSON, responseBody)
 	}
 }

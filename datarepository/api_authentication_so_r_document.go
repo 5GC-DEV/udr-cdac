@@ -25,6 +25,7 @@ import (
 	"github.com/omec-project/util/httpwrapper"
 )
 
+// const ContentTypeJSON = "application/json"
 // HTTPCreateAuthenticationSoR - To store the SoR acknowledgement information of a UE
 func HTTPCreateAuthenticationSoR(c *gin.Context) {
 	var sorData models.SorData
@@ -42,7 +43,7 @@ func HTTPCreateAuthenticationSoR(c *gin.Context) {
 		return
 	}
 
-	err = openapi.Deserialize(&sorData, requestBody, "application/json")
+	err = openapi.Deserialize(&sorData, requestBody, ContentTypeJSON)
 	if err != nil {
 		problemDetail := "[Request Body] " + err.Error()
 		rsp := models.ProblemDetails{
@@ -60,7 +61,7 @@ func HTTPCreateAuthenticationSoR(c *gin.Context) {
 
 	rsp := producer.HandleCreateAuthenticationSoR(req)
 
-	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	responseBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
@@ -70,7 +71,7 @@ func HTTPCreateAuthenticationSoR(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, problemDetails)
 	} else {
-		c.Data(rsp.Status, "application/json", responseBody)
+		c.Data(rsp.Status, ContentTypeJSON, responseBody)
 	}
 }
 
@@ -81,7 +82,7 @@ func HTTPQueryAuthSoR(c *gin.Context) {
 
 	rsp := producer.HandleQueryAuthSoR(req)
 
-	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	responseBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
@@ -91,6 +92,6 @@ func HTTPQueryAuthSoR(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, problemDetails)
 	} else {
-		c.Data(rsp.Status, "application/json", responseBody)
+		c.Data(rsp.Status, ContentTypeJSON, responseBody)
 	}
 }

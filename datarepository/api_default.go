@@ -26,18 +26,19 @@ import (
 	"github.com/omec-project/util/httpwrapper"
 )
 
+// const ContentTypeJSON = "application/json"
 func sendResponse(c *gin.Context, rsp *httpwrapper.Response) {
 	for k, v := range rsp.Header {
 		// TODO: concatenate all values
 		c.Header(k, v[0])
 	}
-	serializedBody, err := openapi.Serialize(rsp.Body, "application/json")
+	serializedBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorf("Serialize Response Body error: %+v", err)
 		pd := util.ProblemDetailsSystemFailure(err.Error())
 		c.JSON(http.StatusInternalServerError, pd)
 	} else {
-		c.Data(rsp.Status, "application/json", serializedBody)
+		c.Data(rsp.Status, ContentTypeJSON, serializedBody)
 	}
 }
 
@@ -50,7 +51,7 @@ func getDataFromRequestBody(c *gin.Context, data interface{}) error {
 		return err
 	}
 
-	err = openapi.Deserialize(data, reqBody, "application/json")
+	err = openapi.Deserialize(data, reqBody, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorf("Deserialize Request Body error: %+v", err)
 		pd := util.ProblemDetailsMalformedReqSyntax(err.Error())
