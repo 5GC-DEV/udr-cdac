@@ -233,18 +233,32 @@ func QueryAmDataProcedure(collName string, ueId string, servingPlmnId string) (*
 
 func HandleAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Response {
 	logger.DataRepoLog.Infoln("handle AmfContext3gpp")
-	collName := SUBSCDATA_CTXDATA_AMF_3GPPACCESS
+	return handlePatchRequest(
+		request,
+		SUBSCDATA_CTXDATA_AMF_3GPPACCESS,
+		AccessTypeAMF3GPP,
+		AmfContext3gppProcedure,
+	)
+}
+
+func handlePatchRequest(
+	request *httpwrapper.Request,
+	collName string,
+	statsType string,
+	procedure func(string, string, []models.PatchItem) *models.ProblemDetails,
+) *httpwrapper.Response {
 	patchItem := request.Body.([]models.PatchItem)
 	ueId := request.Params["ueId"]
 
-	problemDetails := AmfContext3gppProcedure(collName, ueId, patchItem)
-	if problemDetails == nil {
-		stats.IncrementUdrSubscriptionDataStats("update", AccessTypeAMF3GPP, "SUCCESS")
-		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
-	} else {
-		stats.IncrementUdrSubscriptionDataStats("update", AccessTypeAMF3GPP, "FAILURE")
+	problemDetails := procedure(collName, ueId, patchItem)
+
+	if problemDetails != nil {
+		stats.IncrementUdrSubscriptionDataStats("update", statsType, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
+
+	stats.IncrementUdrSubscriptionDataStats("update", statsType, "SUCCESS")
+	return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 }
 
 func AmfContext3gppProcedure(collName string, ueId string, patchItem []models.PatchItem) *models.ProblemDetails {
@@ -2805,18 +2819,12 @@ func decodeIfNotNil(data interface{}, out interface{}) bool {
 func HandleModifyPpData(request *httpwrapper.Request) *httpwrapper.Response {
 	logger.DataRepoLog.Infoln("handle ModifyPpData")
 
-	collName := "subscriptionData.ppData"
-	patchItem := request.Body.([]models.PatchItem)
-	ueId := request.Params["ueId"]
-
-	problemDetails := ModifyPpDataProcedure(collName, ueId, patchItem)
-	if problemDetails == nil {
-		stats.IncrementUdrSubscriptionDataStats("update", PPData, "SUCCESS")
-		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
-	} else {
-		stats.IncrementUdrSubscriptionDataStats("update", PPData, "FAILURE")
-		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
-	}
+	return handlePatchRequest(
+		request,
+		"subscriptionData.ppData",
+		PPData,
+		ModifyPpDataProcedure,
+	)
 }
 
 func ModifyPpDataProcedure(collName string, ueId string, patchItem []models.PatchItem) *models.ProblemDetails {
@@ -3396,20 +3404,9 @@ func CreateSmsfContext3gppProcedure(collName string, ueId string, SmsfRegistrati
 func HandleDeleteSmsfContext3gpp(request *httpwrapper.Request) *httpwrapper.Response {
 	logger.DataRepoLog.Infoln("handle DeleteSmsfContext3gpp")
 
-	collName := SUBSCDATA_CTXDATA_SMSF_3GPPACCESS
-	ueId := request.Params["ueId"]
-
-	DeleteSmsfContext3gppProcedure(collName, ueId)
+	deleteByUeId(SUBSCDATA_CTXDATA_SMSF_3GPPACCESS, request.Params["ueId"])
 	stats.IncrementUdrSubscriptionDataStats("delete", SMSF3GPPAccess, "SUCCESS")
 	return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
-}
-
-func DeleteSmsfContext3gppProcedure(collName string, ueId string) {
-	filter := bson.M{"ueId": ueId}
-	errDelOne := CommonDBClient.RestfulAPIDeleteOne(collName, filter)
-	if errDelOne != nil {
-		logger.DataRepoLog.Warnln(errDelOne)
-	}
 }
 
 func HandleQuerySmsfContext3gpp(request *httpwrapper.Request) *httpwrapper.Response {
@@ -3418,7 +3415,7 @@ func HandleQuerySmsfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 	collName := SUBSCDATA_CTXDATA_SMSF_3GPPACCESS
 	ueId := request.Params["ueId"]
 
-	response, problemDetails := QuerySmsfContext3gppProcedure(collName, ueId)
+	response, problemDetails := QuerySmsfContextCommonProcedure(collName, ueId)
 	if response != nil {
 		stats.IncrementUdrSubscriptionDataStats("get", SMSF3GPPAccess, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
@@ -3430,21 +3427,6 @@ func HandleQuerySmsfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 	pd := util.ProblemDetailsUnspecified("")
 	stats.IncrementUdrSubscriptionDataStats("get", SMSF3GPPAccess, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
-}
-
-func QuerySmsfContext3gppProcedure(collName string, ueId string) (*map[string]interface{}, *models.ProblemDetails) {
-	filter := bson.M{"ueId": ueId}
-
-	smsfRegistration, errGetOne := CommonDBClient.RestfulAPIGetOne(collName, filter)
-	if errGetOne != nil {
-		logger.DataRepoLog.Warnln(errGetOne)
-	}
-
-	if smsfRegistration != nil {
-		return &smsfRegistration, nil
-	} else {
-		return nil, util.ProblemDetailsNotFound("USER_NOT_FOUND")
-	}
 }
 
 func HandleCreateSmsfContextNon3gpp(request *httpwrapper.Request) *httpwrapper.Response {
@@ -3472,20 +3454,16 @@ func CreateSmsfContextNon3gppProcedure(SmsfRegistration models.SmsfRegistration,
 
 func HandleDeleteSmsfContextNon3gpp(request *httpwrapper.Request) *httpwrapper.Response {
 	logger.DataRepoLog.Infoln("handle DeleteSmsfContextNon3gpp")
-
-	collName := SUBSCDATA_CTXDATA_SMSF_NON3GPPACCESS
-	ueId := request.Params["ueId"]
-
-	DeleteSmsfContextNon3gppProcedure(collName, ueId)
+	// DeleteSmsfContextNon3gppProcedure(collName, ueId)---later handled by using the menioned function
+	deleteByUeId(SUBSCDATA_CTXDATA_SMSF_NON3GPPACCESS, request.Params["ueId"])
 	stats.IncrementUdrSubscriptionDataStats("delete", SMSFNon3GPPAccess, "SUCCESS")
 	return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 }
 
-func DeleteSmsfContextNon3gppProcedure(collName string, ueId string) {
-	filter := bson.M{"ueId": ueId}
-	errDelOne := CommonDBClient.RestfulAPIDeleteOne(collName, filter)
-	if errDelOne != nil {
-		logger.DataRepoLog.Warnln(errDelOne)
+func deleteByUeId(collName string, ueId string) {
+	err := CommonDBClient.RestfulAPIDeleteOne(collName, bson.M{"ueId": ueId})
+	if err != nil {
+		logger.DataRepoLog.Warnln("Delete failed for ueId:", ueId, "error:", err)
 	}
 }
 
@@ -3495,7 +3473,7 @@ func HandleQuerySmsfContextNon3gpp(request *httpwrapper.Request) *httpwrapper.Re
 	ueId := request.Params["ueId"]
 	collName := SUBSCDATA_CTXDATA_SMSF_NON3GPPACCESS
 
-	response, problemDetails := QuerySmsfContextNon3gppProcedure(collName, ueId)
+	response, problemDetails := QuerySmsfContextCommonProcedure(collName, ueId)
 	if response != nil {
 		stats.IncrementUdrSubscriptionDataStats("get", SMSFNon3GPPAccess, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
@@ -3509,7 +3487,7 @@ func HandleQuerySmsfContextNon3gpp(request *httpwrapper.Request) *httpwrapper.Re
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
-func QuerySmsfContextNon3gppProcedure(collName string, ueId string) (*map[string]interface{}, *models.ProblemDetails) {
+func QuerySmsfContextCommonProcedure(collName string, ueId string) (*map[string]interface{}, *models.ProblemDetails) {
 	filter := bson.M{"ueId": ueId}
 
 	smsfRegistration, errGetOne := CommonDBClient.RestfulAPIGetOne(collName, filter)
