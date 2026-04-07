@@ -252,13 +252,17 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 		return httpwrapper.NewResponse(http.StatusForbidden, nil, problemDetails)
 	}
 	if exists {
-		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
+		return httpwrapper.NewResponse(http.StatusNoContent, nil, nil)
 	}
 	// if !ok {
 	// 	logger.DataRepoLog.Debugln("PUT request failed")
 	// }
+	headers := http.Header{}
+	location := fmt.Sprintf("/nudr-dr/v2/subscription-data/%s/context-data/amf-3gpp-access", ueId)
+	headers.Set("Location", location)
+
 	stats.IncrementUdrSubscriptionDataStats("create", "amf-3gpp-access", "SUCCESS")
-	return httpwrapper.NewResponse(http.StatusCreated, nil, map[string]interface{}{})
+	return httpwrapper.NewResponse(http.StatusCreated, headers, Amf3GppAccessRegistration)
 }
 
 func CreateAmfContext3gppProcedure(collName string, ueId string,
