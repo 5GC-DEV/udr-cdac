@@ -246,7 +246,7 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 	ueId := request.Params["ueId"]
 	collName := SUBSCDATA_CTXDATA_AMF_3GPPACCESS
 
-	problemDetails, exists, err := CreateAmfContext3gppProcedure(collName, ueId, Amf3GppAccessRegistration)
+	problemDetails, exists, createdResource, err := CreateAmfContext3gppProcedure(collName, ueId, Amf3GppAccessRegistration)
 	if err != nil {
 		stats.IncrementUdrSubscriptionDataStats("create", "amf-3gpp-access", "FAILURE")
 		return httpwrapper.NewResponse(http.StatusForbidden, nil, problemDetails)
@@ -262,12 +262,12 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 	headers.Set("Location", location)
 
 	stats.IncrementUdrSubscriptionDataStats("create", "amf-3gpp-access", "SUCCESS")
-	return httpwrapper.NewResponse(http.StatusCreated, headers, Amf3GppAccessRegistration)
+	return httpwrapper.NewResponse(http.StatusCreated, headers, createdResource)
 }
 
 func CreateAmfContext3gppProcedure(collName string, ueId string,
 	Amf3GppAccessRegistration models.Amf3GppAccessRegistration,
-) (*models.ProblemDetails, bool, error) {
+) (*models.ProblemDetails, bool, models.Amf3GppAccessRegistration, error) {
 	var exists bool
 	colleName := SUBSCDATA_AUTHDATA_AUTHSTATUS
 	filters := bson.M{"ueId": ueId}
@@ -280,10 +280,11 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 		logger.DataRepoLog.Debugln("ueId found from mongodb")
 	} else {
 		logger.DataRepoLog.Debugln("ueId not found from mongodb")
-		return util.ProblemDetailsNotFound("SUBSCRIPTION_NOT_FOUND"), false, errors.New("no required subscription data")
+		return util.ProblemDetailsNotFound("SUBSCRIPTION_NOT_FOUND"), false, models.Amf3GppAccessRegistration{}, errors.New("no required subscription data")
 	}
 
 	filter := bson.M{"ueId": ueId}
+	Amf3GppAccessRegistration.AmfInstanceId = uuid.New().String()
 	putData := util.ToBsonM(Amf3GppAccessRegistration)
 	putData["ueId"] = ueId
 
@@ -302,7 +303,7 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 	if errPutOne != nil {
 		logger.DataRepoLog.Warnln(errPutOne)
 	}
-	return nil, exists, errPutOne
+	return nil, exists, Amf3GppAccessRegistration, errPutOne
 }
 
 func HandleQueryAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Response {
