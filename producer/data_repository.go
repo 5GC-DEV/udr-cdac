@@ -243,6 +243,7 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 	logger.DataRepoLog.Infoln("handle CreateAmfContext3gpp")
 
 	Amf3GppAccessRegistration := request.Body.(models.Amf3GppAccessRegistration)
+	logger.DataRepoLog.Infoln("---Amfinstanceid: ", Amf3GppAccessRegistration.AmfInstanceId)
 	ueId := request.Params["ueId"]
 	collName := SUBSCDATA_CTXDATA_AMF_3GPPACCESS
 
@@ -284,7 +285,7 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 	}
 
 	filter := bson.M{"ueId": ueId}
-	Amf3GppAccessRegistration.AmfInstanceId = uuid.New().String()
+	// Amf3GppAccessRegistration.AmfInstanceId = uuid.New().String()
 	putData := util.ToBsonM(Amf3GppAccessRegistration)
 	putData["ueId"] = ueId
 
