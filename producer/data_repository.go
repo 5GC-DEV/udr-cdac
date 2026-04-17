@@ -254,9 +254,6 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 	if exists {
 		return httpwrapper.NewResponse(http.StatusNoContent, nil, nil)
 	}
-	// if !ok {
-	// 	logger.DataRepoLog.Debugln("PUT request failed")
-	// }
 	headers := http.Header{}
 	location := fmt.Sprintf("/nudr-dr/v2/subscription-data/%s/context-data/amf-3gpp-access", ueId)
 	headers.Set("Location", location)
@@ -284,7 +281,6 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 	}
 
 	filter := bson.M{"ueId": ueId}
-	// Amf3GppAccessRegistration.AmfInstanceId = uuid.New().String()
 	putData := util.ToBsonM(Amf3GppAccessRegistration)
 	putData["ueId"] = ueId
 
@@ -298,7 +294,6 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 	} else {
 		logger.DataRepoLog.Debugln("ueId not exist")
 	}
-
 	_, errPutOne := CommonDBClient.RestfulAPIPutOne(collName, filter, putData)
 	if errPutOne != nil {
 		logger.DataRepoLog.Warnln(errPutOne)
