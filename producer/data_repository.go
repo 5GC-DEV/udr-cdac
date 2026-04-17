@@ -3177,6 +3177,18 @@ func QuerySmDataProcedure(collName string, ueId string, servingPlmnId string,
 				delete(doc, key)
 			}
 		}
+		if dnnConfigs, ok := doc["dnnConfigurations"].(map[string]interface{}); ok {
+			for dnn, cfg := range dnnConfigs {
+				if cfgMap, ok := cfg.(map[string]interface{}); ok {
+					for k, v := range cfgMap {
+						if v == nil {
+							delete(cfgMap, k)
+						}
+					}
+					dnnConfigs[dnn] = cfgMap
+				}
+			}
+		}
 	}
 
 	return &sessionManagementSubscriptionDatas
