@@ -25,6 +25,7 @@ import (
 	"github.com/omec-project/util/httpwrapper"
 )
 
+// const ContentTypeJSON = "application/json"
 // HTTPCreateEeGroupSubscriptions - Create individual EE subscription for a group of UEs or any UE
 func HTTPCreateEeGroupSubscriptions(c *gin.Context) {
 	var eeSubscription models.EeSubscription
@@ -41,7 +42,7 @@ func HTTPCreateEeGroupSubscriptions(c *gin.Context) {
 		return
 	}
 
-	err = openapi.Deserialize(&eeSubscription, requestBody, "application/json")
+	err = openapi.Deserialize(&eeSubscription, requestBody, ContentTypeJSON)
 	if err != nil {
 		problemDetail := "[Request Body] " + err.Error()
 		rsp := models.ProblemDetails{
@@ -59,7 +60,7 @@ func HTTPCreateEeGroupSubscriptions(c *gin.Context) {
 
 	rsp := producer.HandleCreateEeGroupSubscriptions(req)
 
-	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	responseBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
@@ -69,7 +70,7 @@ func HTTPCreateEeGroupSubscriptions(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, problemDetails)
 	} else {
-		c.Data(rsp.Status, "application/json", responseBody)
+		c.Data(rsp.Status, ContentTypeJSON, responseBody)
 	}
 }
 
@@ -80,7 +81,7 @@ func HTTPQueryEeGroupSubscriptions(c *gin.Context) {
 
 	rsp := producer.HandleQueryEeGroupSubscriptions(req)
 
-	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	responseBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
@@ -90,6 +91,6 @@ func HTTPQueryEeGroupSubscriptions(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, problemDetails)
 	} else {
-		c.Data(rsp.Status, "application/json", responseBody)
+		c.Data(rsp.Status, ContentTypeJSON, responseBody)
 	}
 }

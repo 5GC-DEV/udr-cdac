@@ -23,6 +23,25 @@ import (
 	utilLogger "github.com/omec-project/util/logger"
 )
 
+const (
+	ErrHTTPMethodNotAllowed           = "Method Not Allowed"
+	InfluenceDataPath                 = "/application-data/influenceData/:influenceId"
+	AMF3GPPAccessSubscriptionPath     = "/subscription-data/:ueId/:servingPlmnId/amf-3gpp-access"
+	AMFNon3GPPAccessSubscriptionPath  = "/subscription-data/:ueId/:servingPlmnId/amf-non-3gpp-access"
+	InfluenceDataSubscriptionPath     = "/application-data/influenceData/:influenceId/:subscriptionId"
+	PFDsByAppIDPath                   = "/application-data/pfds/:appId"
+	PolicyBDTDataByReferencePath      = "/policy-data/bdt-data/:bdtReferenceId"
+	OperatorSpecificDataPath          = "/policy-data/ues/:ueId/operator-specific-data"
+	SmDataByUsageMonIDPath            = "/policy-data/ues/:ueId/sm-data/:usageMonId"
+	UEPolicySetPath                   = "/policy-data/ues/:ueId/ue-policy-set"
+	SMFRegistrationByPduSessionPath   = "/subscription-data/:ueId/:servingPlmnId/smf-registrations/:pduSessionId"
+	SMSF3GPPAccessPath                = "/subscription-data/:ueId/:servingPlmnId/smsf-3gpp-access"
+	SMSFNon3GPPAccessPath             = "/subscription-data/:ueId/:servingPlmnId/smsf-non-3gpp-access"
+	AMFSubscriptionBySubsIDPath       = "/subscription-data/:ueId/:servingPlmnId/ee-subscriptions/:subsId/amf-subscriptions"
+	ExposureSessionManagementDataPath = "/exposure-data/:ueId/session-management-data/:pduSessionId"
+	ExposureAccessMobilityDataPath    = "/exposure-data/:ueId/access-and-mobility-data"
+)
+
 var subsToNotifyStr = "subs-to-notify"
 
 // Route is the information for every URI.
@@ -55,7 +74,7 @@ func subMsgShortDispatchHandlerFunc(c *gin.Context) {
 			return
 		}
 	}
-	c.String(http.StatusMethodNotAllowed, "Method Not Allowed")
+	c.String(http.StatusMethodNotAllowed, ErrHTTPMethodNotAllowed)
 }
 
 func subMsgDispatchHandlerFunc(c *gin.Context) {
@@ -73,7 +92,7 @@ func subMsgDispatchHandlerFunc(c *gin.Context) {
 			return
 		}
 	}
-	c.String(http.StatusMethodNotAllowed, "Method Not Allowed")
+	c.String(http.StatusMethodNotAllowed, ErrHTTPMethodNotAllowed)
 }
 
 func eeMsgShortDispatchHandlerFunc(c *gin.Context) {
@@ -90,7 +109,7 @@ func eeMsgShortDispatchHandlerFunc(c *gin.Context) {
 			return
 		}
 	}
-	c.String(http.StatusMethodNotAllowed, "Method Not Allowed")
+	c.String(http.StatusMethodNotAllowed, ErrHTTPMethodNotAllowed)
 }
 
 func eeMsgDispatchHandlerFunc(c *gin.Context) {
@@ -107,7 +126,7 @@ func eeMsgDispatchHandlerFunc(c *gin.Context) {
 			return
 		}
 	}
-	c.String(http.StatusMethodNotAllowed, "Method Not Allowed")
+	c.String(http.StatusMethodNotAllowed, ErrHTTPMethodNotAllowed)
 }
 
 // Handler to distinguish subsToNotifyStr from ":influenceId".
@@ -128,7 +147,7 @@ func appInfluDataMsgDispatchHandlerFunc(c *gin.Context) {
 			}
 		}
 	}
-	c.String(http.StatusMethodNotAllowed, "Method Not Allowed")
+	c.String(http.StatusMethodNotAllowed, ErrHTTPMethodNotAllowed)
 }
 
 func expoMsgDispatchHandlerFunc(c *gin.Context) {
@@ -144,7 +163,7 @@ func expoMsgDispatchHandlerFunc(c *gin.Context) {
 			return
 		}
 	}
-	c.String(http.StatusMethodNotAllowed, "Method Not Allowed")
+	c.String(http.StatusMethodNotAllowed, ErrHTTPMethodNotAllowed)
 }
 
 func AddService(engine *gin.Engine) *gin.RouterGroup {
@@ -184,7 +203,7 @@ func AddService(engine *gin.Engine) *gin.RouterGroup {
 	 * Only can use '/application-data/influenceData/:influenceId' pattern and
 	 * use a dispatch handler to distinguish subsToNotifyStr from ":influenceId".
 	 */
-	appInfluDataPattern := "/application-data/influenceData/:influenceId"
+	appInfluDataPattern := InfluenceDataPath
 	group.Any(appInfluDataPattern, appInfluDataMsgDispatchHandlerFunc)
 
 	expoPatternShort := "/exposure-data/:ueId/:subId"
@@ -212,42 +231,42 @@ var routes = Routes{
 	{
 		"HTTPAmfContext3gpp",
 		strings.ToUpper("Patch"),
-		"/subscription-data/:ueId/:servingPlmnId/amf-3gpp-access",
+		AMF3GPPAccessSubscriptionPath,
 		HTTPAmfContext3gpp,
 	},
 
 	{
 		"HTTPCreateAmfContext3gpp",
 		strings.ToUpper("Put"),
-		"/subscription-data/:ueId/:servingPlmnId/amf-3gpp-access",
+		AMF3GPPAccessSubscriptionPath,
 		HTTPCreateAmfContext3gpp,
 	},
 
 	{
 		"HTTPQueryAmfContext3gpp",
 		strings.ToUpper("Get"),
-		"/subscription-data/:ueId/:servingPlmnId/amf-3gpp-access",
+		AMF3GPPAccessSubscriptionPath,
 		HTTPQueryAmfContext3gpp,
 	},
 
 	{
 		"HTTPAmfContextNon3gpp",
 		strings.ToUpper("Patch"),
-		"/subscription-data/:ueId/:servingPlmnId/amf-non-3gpp-access",
+		AMFNon3GPPAccessSubscriptionPath,
 		HTTPAmfContextNon3gpp,
 	},
 
 	{
 		"HTTPCreateAmfContextNon3gpp",
 		strings.ToUpper("Put"),
-		"/subscription-data/:ueId/:servingPlmnId/amf-non-3gpp-access",
+		AMFNon3GPPAccessSubscriptionPath,
 		HTTPCreateAmfContextNon3gpp,
 	},
 
 	{
 		"HTTPQueryAmfContextNon3gpp",
 		strings.ToUpper("Get"),
-		"/subscription-data/:ueId/:servingPlmnId/amf-non-3gpp-access",
+		AMFNon3GPPAccessSubscriptionPath,
 		HTTPQueryAmfContextNon3gpp,
 	},
 
@@ -317,42 +336,42 @@ var routes = Routes{
 	{
 		"HTTPApplicationDataInfluenceDataSubsToNotifySubscriptionIdDelete",
 		strings.ToUpper("Delete"),
-		"/application-data/influenceData/:influenceId/:subscriptionId",
+		InfluenceDataSubscriptionPath,
 		HTTPApplicationDataInfluenceDataSubsToNotifySubscriptionIdDelete,
 	},
 
 	{
 		"HTTPApplicationDataInfluenceDataSubsToNotifySubscriptionIdGet",
 		strings.ToUpper("Get"),
-		"/application-data/influenceData/:influenceId/:subscriptionId",
+		InfluenceDataSubscriptionPath,
 		HTTPApplicationDataInfluenceDataSubsToNotifySubscriptionIdGet,
 	},
 
 	{
 		"HTTPApplicationDataInfluenceDataSubsToNotifySubscriptionIdPut",
 		strings.ToUpper("Put"),
-		"/application-data/influenceData/:influenceId/:subscriptionId",
+		InfluenceDataSubscriptionPath,
 		HTTPApplicationDataInfluenceDataSubsToNotifySubscriptionIdPut,
 	},
 
 	{
 		"HTTPApplicationDataPfdsAppIdDelete",
 		strings.ToUpper("Delete"),
-		"/application-data/pfds/:appId",
+		PFDsByAppIDPath,
 		HTTPApplicationDataPfdsAppIdDelete,
 	},
 
 	{
 		"HTTPApplicationDataPfdsAppIdGet",
 		strings.ToUpper("Get"),
-		"/application-data/pfds/:appId",
+		PFDsByAppIDPath,
 		HTTPApplicationDataPfdsAppIdGet,
 	},
 
 	{
 		"HTTPApplicationDataPfdsAppIdPut",
 		strings.ToUpper("Put"),
-		"/application-data/pfds/:appId",
+		PFDsByAppIDPath,
 		HTTPApplicationDataPfdsAppIdPut,
 	},
 
@@ -366,21 +385,21 @@ var routes = Routes{
 	{
 		"HTTPPolicyDataBdtDataBdtReferenceIdDelete",
 		strings.ToUpper("Delete"),
-		"/policy-data/bdt-data/:bdtReferenceId",
+		PolicyBDTDataByReferencePath,
 		HTTPPolicyDataBdtDataBdtReferenceIdDelete,
 	},
 
 	{
 		"HTTPPolicyDataBdtDataBdtReferenceIdGet",
 		strings.ToUpper("Get"),
-		"/policy-data/bdt-data/:bdtReferenceId",
+		PolicyBDTDataByReferencePath,
 		HTTPPolicyDataBdtDataBdtReferenceIdGet,
 	},
 
 	{
 		"HTTPPolicyDataBdtDataBdtReferenceIdPut",
 		strings.ToUpper("Put"),
-		"/policy-data/bdt-data/:bdtReferenceId",
+		PolicyBDTDataByReferencePath,
 		HTTPPolicyDataBdtDataBdtReferenceIdPut,
 	},
 
@@ -436,21 +455,21 @@ var routes = Routes{
 	{
 		"HTTPPolicyDataUesUeIdOperatorSpecificDataGet",
 		strings.ToUpper("Get"),
-		"/policy-data/ues/:ueId/operator-specific-data",
+		OperatorSpecificDataPath,
 		HTTPPolicyDataUesUeIdOperatorSpecificDataGet,
 	},
 
 	{
 		"HTTPPolicyDataUesUeIdOperatorSpecificDataPatch",
 		strings.ToUpper("Patch"),
-		"/policy-data/ues/:ueId/operator-specific-data",
+		OperatorSpecificDataPath,
 		HTTPPolicyDataUesUeIdOperatorSpecificDataPatch,
 	},
 
 	{
 		"HTTPPolicyDataUesUeIdOperatorSpecificDataPut",
 		strings.ToUpper("Put"),
-		"/policy-data/ues/:ueId/operator-specific-data",
+		OperatorSpecificDataPath,
 		HTTPPolicyDataUesUeIdOperatorSpecificDataPut,
 	},
 
@@ -471,42 +490,42 @@ var routes = Routes{
 	{
 		"HTTPPolicyDataUesUeIdSmDataUsageMonIdDelete",
 		strings.ToUpper("Delete"),
-		"/policy-data/ues/:ueId/sm-data/:usageMonId",
+		SmDataByUsageMonIDPath,
 		HTTPPolicyDataUesUeIdSmDataUsageMonIdDelete,
 	},
 
 	{
 		"HTTPPolicyDataUesUeIdSmDataUsageMonIdGet",
 		strings.ToUpper("Get"),
-		"/policy-data/ues/:ueId/sm-data/:usageMonId",
+		SmDataByUsageMonIDPath,
 		HTTPPolicyDataUesUeIdSmDataUsageMonIdGet,
 	},
 
 	{
 		"HTTPPolicyDataUesUeIdSmDataUsageMonIdPut",
 		strings.ToUpper("Put"),
-		"/policy-data/ues/:ueId/sm-data/:usageMonId",
+		SmDataByUsageMonIDPath,
 		HTTPPolicyDataUesUeIdSmDataUsageMonIdPut,
 	},
 
 	{
 		"HTTPPolicyDataUesUeIdUePolicySetGet",
 		strings.ToUpper("Get"),
-		"/policy-data/ues/:ueId/ue-policy-set",
+		UEPolicySetPath,
 		HTTPPolicyDataUesUeIdUePolicySetGet,
 	},
 
 	{
 		"HTTPPolicyDataUesUeIdUePolicySetPatch",
 		strings.ToUpper("Patch"),
-		"/policy-data/ues/:ueId/ue-policy-set",
+		UEPolicySetPath,
 		HTTPPolicyDataUesUeIdUePolicySetPatch,
 	},
 
 	{
 		"HTTPPolicyDataUesUeIdUePolicySetPut",
 		strings.ToUpper("Put"),
-		"/policy-data/ues/:ueId/ue-policy-set",
+		UEPolicySetPath,
 		HTTPPolicyDataUesUeIdUePolicySetPut,
 	},
 
@@ -555,14 +574,14 @@ var routes = Routes{
 	{
 		"HTTPDeleteSmfContext",
 		strings.ToUpper("Delete"),
-		"/subscription-data/:ueId/:servingPlmnId/smf-registrations/:pduSessionId",
+		SMFRegistrationByPduSessionPath,
 		HTTPDeleteSmfContext,
 	},
 
 	{
 		"HTTPQuerySmfRegistration",
 		strings.ToUpper("Get"),
-		"/subscription-data/:ueId/:servingPlmnId/smf-registrations/:pduSessionId",
+		SMFRegistrationByPduSessionPath,
 		HTTPQuerySmfRegistration,
 	},
 
@@ -583,42 +602,42 @@ var routes = Routes{
 	{
 		"HTTPCreateSmsfContext3gpp",
 		strings.ToUpper("Put"),
-		"/subscription-data/:ueId/:servingPlmnId/smsf-3gpp-access",
+		SMSF3GPPAccessPath,
 		HTTPCreateSmsfContext3gpp,
 	},
 
 	{
 		"HTTPDeleteSmsfContext3gpp",
 		strings.ToUpper("Delete"),
-		"/subscription-data/:ueId/:servingPlmnId/smsf-3gpp-access",
+		SMSF3GPPAccessPath,
 		HTTPDeleteSmsfContext3gpp,
 	},
 
 	{
 		"HTTPQuerySmsfContext3gpp",
 		strings.ToUpper("Get"),
-		"/subscription-data/:ueId/:servingPlmnId/smsf-3gpp-access",
+		SMSF3GPPAccessPath,
 		HTTPQuerySmsfContext3gpp,
 	},
 
 	{
 		"HTTPCreateSmsfContextNon3gpp",
 		strings.ToUpper("Put"),
-		"/subscription-data/:ueId/:servingPlmnId/smsf-non-3gpp-access",
+		SMSFNon3GPPAccessPath,
 		HTTPCreateSmsfContextNon3gpp,
 	},
 
 	{
 		"HTTPDeleteSmsfContextNon3gpp",
 		strings.ToUpper("Delete"),
-		"/subscription-data/:ueId/:servingPlmnId/smsf-non-3gpp-access",
+		SMSFNon3GPPAccessPath,
 		HTTPDeleteSmsfContextNon3gpp,
 	},
 
 	{
 		"HTTPQuerySmsfContextNon3gpp",
 		strings.ToUpper("Get"),
-		"/subscription-data/:ueId/:servingPlmnId/smsf-non-3gpp-access",
+		SMSFNon3GPPAccessPath,
 		HTTPQuerySmsfContextNon3gpp,
 	},
 
@@ -653,28 +672,28 @@ var routes = Routes{
 	{
 		"HTTPCreateAMFSubscriptions",
 		strings.ToUpper("Put"),
-		"/subscription-data/:ueId/:servingPlmnId/ee-subscriptions/:subsId/amf-subscriptions",
+		AMFSubscriptionBySubsIDPath,
 		HTTPCreateAMFSubscriptions,
 	},
 
 	{
 		"HTTPModifyAmfSubscriptionInfo",
 		strings.ToUpper("Patch"),
-		"/subscription-data/:ueId/:servingPlmnId/ee-subscriptions/:subsId/amf-subscriptions",
+		AMFSubscriptionBySubsIDPath,
 		HTTPModifyAmfSubscriptionInfo,
 	},
 
 	{
 		"HTTPRemoveAmfSubscriptionsInfo",
 		strings.ToUpper("Delete"),
-		"/subscription-data/:ueId/:servingPlmnId/ee-subscriptions/:subsId/amf-subscriptions",
+		AMFSubscriptionBySubsIDPath,
 		HTTPRemoveAmfSubscriptionsInfo,
 	},
 
 	{
 		"HTTPGetAmfSubscriptionInfo",
 		strings.ToUpper("Get"),
-		"/subscription-data/:ueId/:servingPlmnId/ee-subscriptions/:subsId/amf-subscriptions",
+		AMFSubscriptionBySubsIDPath,
 		HTTPGetAmfSubscriptionInfo,
 	},
 }
@@ -818,42 +837,42 @@ var expoRoutes = Routes{
 	{
 		"HTTPCreateSessionManagementData",
 		strings.ToUpper("Put"),
-		"/exposure-data/:ueId/session-management-data/:pduSessionId",
+		ExposureSessionManagementDataPath,
 		HTTPCreateSessionManagementData,
 	},
 
 	{
 		"HTTPDeleteSessionManagementData",
 		strings.ToUpper("Delete"),
-		"/exposure-data/:ueId/session-management-data/:pduSessionId",
+		ExposureSessionManagementDataPath,
 		HTTPDeleteSessionManagementData,
 	},
 
 	{
 		"HTTPQuerySessionManagementData",
 		strings.ToUpper("Get"),
-		"/exposure-data/:ueId/session-management-data/:pduSessionId",
+		ExposureSessionManagementDataPath,
 		HTTPQuerySessionManagementData,
 	},
 
 	{
 		"CreateAccessAndMobilityData",
 		strings.ToUpper("Put"),
-		"/exposure-data/:ueId/access-and-mobility-data",
+		ExposureAccessMobilityDataPath,
 		CreateAccessAndMobilityData,
 	},
 
 	{
 		"DeleteAccessAndMobilityData",
 		strings.ToUpper("Delete"),
-		"/exposure-data/:ueId/access-and-mobility-data",
+		ExposureAccessMobilityDataPath,
 		DeleteAccessAndMobilityData,
 	},
 
 	{
 		"QueryAccessAndMobilityData",
 		strings.ToUpper("Get"),
-		"/exposure-data/:ueId/access-and-mobility-data",
+		ExposureAccessMobilityDataPath,
 		QueryAccessAndMobilityData,
 	},
 
@@ -897,35 +916,35 @@ var appInfluDataRoutes = Routes{
 	{
 		"HTTPApplicationDataInfluenceDataInfluenceIdDelete",
 		strings.ToUpper("Delete"),
-		"/application-data/influenceData/:influenceId",
+		InfluenceDataPath,
 		HTTPApplicationDataInfluenceDataInfluenceIdDelete,
 	},
 
 	{
 		"HTTPApplicationDataInfluenceDataInfluenceIdPatch",
 		strings.ToUpper("Patch"),
-		"/application-data/influenceData/:influenceId",
+		InfluenceDataPath,
 		HTTPApplicationDataInfluenceDataInfluenceIdPatch,
 	},
 
 	{
 		"HTTPApplicationDataInfluenceDataInfluenceIdPut",
 		strings.ToUpper("Put"),
-		"/application-data/influenceData/:influenceId",
+		InfluenceDataPath,
 		HTTPApplicationDataInfluenceDataInfluenceIdPut,
 	},
 
 	{
 		"HTTPApplicationDataInfluenceDataSubsToNotifyGet",
 		strings.ToUpper("Get"),
-		"/application-data/influenceData/:influenceId",
+		InfluenceDataPath,
 		HTTPApplicationDataInfluenceDataSubsToNotifyGet,
 	},
 
 	{
 		"HTTPApplicationDataInfluenceDataSubsToNotifyPost",
 		strings.ToUpper("Post"),
-		"/application-data/influenceData/:influenceId",
+		InfluenceDataPath,
 		HTTPApplicationDataInfluenceDataSubsToNotifyPost,
 	},
 }

@@ -25,6 +25,7 @@ import (
 	"github.com/omec-project/util/httpwrapper"
 )
 
+// const ContentTypeJSON = "application/json"
 // HTTPModifyAuthentication - modify the authentication subscription data of a UE
 func HTTPModifyAuthentication(c *gin.Context) {
 	var patchItemArray []models.PatchItem
@@ -42,7 +43,7 @@ func HTTPModifyAuthentication(c *gin.Context) {
 		return
 	}
 
-	err = openapi.Deserialize(&patchItemArray, requestBody, "application/json")
+	err = openapi.Deserialize(&patchItemArray, requestBody, ContentTypeJSON)
 	if err != nil {
 		problemDetail := "[Request Body] " + err.Error()
 		rsp := models.ProblemDetails{
@@ -60,7 +61,7 @@ func HTTPModifyAuthentication(c *gin.Context) {
 
 	rsp := producer.HandleModifyAuthentication(req)
 
-	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	responseBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
@@ -70,7 +71,7 @@ func HTTPModifyAuthentication(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, problemDetails)
 	} else {
-		c.Data(rsp.Status, "application/json", responseBody)
+		c.Data(rsp.Status, ContentTypeJSON, responseBody)
 	}
 }
 
@@ -81,7 +82,7 @@ func HTTPQueryAuthSubsData(c *gin.Context) {
 
 	rsp := producer.HandleQueryAuthSubsData(req)
 
-	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	responseBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
@@ -91,6 +92,6 @@ func HTTPQueryAuthSubsData(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, problemDetails)
 	} else {
-		c.Data(rsp.Status, "application/json", responseBody)
+		c.Data(rsp.Status, ContentTypeJSON, responseBody)
 	}
 }

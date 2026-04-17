@@ -25,6 +25,7 @@ import (
 	"github.com/omec-project/util/httpwrapper"
 )
 
+// const ContentTypeJSON = "application/json"
 // HTTPRemovesdmSubscriptions - Deletes a sdmsubscriptions
 func HTTPRemovesdmSubscriptions(c *gin.Context) {
 	req := httpwrapper.NewRequest(c.Request, nil)
@@ -33,7 +34,7 @@ func HTTPRemovesdmSubscriptions(c *gin.Context) {
 
 	rsp := producer.HandleRemovesdmSubscriptions(req)
 
-	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	responseBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
@@ -43,7 +44,7 @@ func HTTPRemovesdmSubscriptions(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, problemDetails)
 	} else {
-		c.Data(rsp.Status, "application/json", responseBody)
+		c.Data(rsp.Status, ContentTypeJSON, responseBody)
 	}
 }
 
@@ -64,7 +65,7 @@ func HTTPUpdatesdmsubscriptions(c *gin.Context) {
 		return
 	}
 
-	err = openapi.Deserialize(&sdmSubscription, requestBody, "application/json")
+	err = openapi.Deserialize(&sdmSubscription, requestBody, ContentTypeJSON)
 	if err != nil {
 		problemDetail := "[Request Body] " + err.Error()
 		rsp := models.ProblemDetails{
@@ -83,7 +84,7 @@ func HTTPUpdatesdmsubscriptions(c *gin.Context) {
 
 	rsp := producer.HandleUpdatesdmsubscriptions(req)
 
-	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	responseBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
@@ -93,6 +94,6 @@ func HTTPUpdatesdmsubscriptions(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, problemDetails)
 	} else {
-		c.Data(rsp.Status, "application/json", responseBody)
+		c.Data(rsp.Status, ContentTypeJSON, responseBody)
 	}
 }

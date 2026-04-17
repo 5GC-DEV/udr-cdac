@@ -25,6 +25,7 @@ import (
 	"github.com/omec-project/util/httpwrapper"
 )
 
+// const ContentTypeJSON = "application/json"
 // HTTPCreateSmsfContext3gpp - Create the SMSF context data of a UE via 3GPP access
 func HTTPCreateSmsfContext3gpp(c *gin.Context) {
 	var smsfRegistration models.SmsfRegistration
@@ -42,7 +43,7 @@ func HTTPCreateSmsfContext3gpp(c *gin.Context) {
 		return
 	}
 
-	err = openapi.Deserialize(&smsfRegistration, requestBody, "application/json")
+	err = openapi.Deserialize(&smsfRegistration, requestBody, ContentTypeJSON)
 	if err != nil {
 		problemDetail := "[Request Body] " + err.Error()
 		rsp := models.ProblemDetails{
@@ -60,7 +61,7 @@ func HTTPCreateSmsfContext3gpp(c *gin.Context) {
 
 	rsp := producer.HandleCreateSmsfContext3gpp(req)
 
-	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	responseBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
@@ -70,7 +71,7 @@ func HTTPCreateSmsfContext3gpp(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, problemDetails)
 	} else {
-		c.Data(rsp.Status, "application/json", responseBody)
+		c.Data(rsp.Status, ContentTypeJSON, responseBody)
 	}
 }
 
@@ -81,7 +82,7 @@ func HTTPDeleteSmsfContext3gpp(c *gin.Context) {
 
 	rsp := producer.HandleDeleteSmsfContext3gpp(req)
 
-	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	responseBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
@@ -91,7 +92,7 @@ func HTTPDeleteSmsfContext3gpp(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, problemDetails)
 	} else {
-		c.Data(rsp.Status, "application/json", responseBody)
+		c.Data(rsp.Status, ContentTypeJSON, responseBody)
 	}
 }
 
@@ -102,7 +103,7 @@ func HTTPQuerySmsfContext3gpp(c *gin.Context) {
 
 	rsp := producer.HandleQuerySmsfContext3gpp(req)
 
-	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	responseBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
@@ -112,6 +113,6 @@ func HTTPQuerySmsfContext3gpp(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, problemDetails)
 	} else {
-		c.Data(rsp.Status, "application/json", responseBody)
+		c.Data(rsp.Status, ContentTypeJSON, responseBody)
 	}
 }

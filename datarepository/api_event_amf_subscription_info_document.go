@@ -25,6 +25,7 @@ import (
 	"github.com/omec-project/util/httpwrapper"
 )
 
+// const ContentTypeJSON = "application/json"
 // HTTPCreateAMFSubscriptions - Creates AMF Subscription Info for an eeSubscription
 func HTTPCreateAMFSubscriptions(c *gin.Context) {
 	var amfSubscriptionInfoArray []models.AmfSubscriptionInfo
@@ -42,7 +43,7 @@ func HTTPCreateAMFSubscriptions(c *gin.Context) {
 		return
 	}
 
-	err = openapi.Deserialize(&amfSubscriptionInfoArray, requestBody, "application/json")
+	err = openapi.Deserialize(&amfSubscriptionInfoArray, requestBody, ContentTypeJSON)
 	if err != nil {
 		problemDetail := "[Request Body] " + err.Error()
 		rsp := models.ProblemDetails{
@@ -61,7 +62,7 @@ func HTTPCreateAMFSubscriptions(c *gin.Context) {
 
 	rsp := producer.HandleCreateAMFSubscriptions(req)
 
-	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	responseBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
@@ -71,7 +72,7 @@ func HTTPCreateAMFSubscriptions(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, problemDetails)
 	} else {
-		c.Data(rsp.Status, "application/json", responseBody)
+		c.Data(rsp.Status, ContentTypeJSON, responseBody)
 	}
 }
 
@@ -83,7 +84,7 @@ func HTTPRemoveAmfSubscriptionsInfo(c *gin.Context) {
 
 	rsp := producer.HandleRemoveAmfSubscriptionsInfo(req)
 
-	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	responseBody, err := openapi.Serialize(rsp.Body, ContentTypeJSON)
 	if err != nil {
 		logger.DataRepoLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
@@ -93,6 +94,6 @@ func HTTPRemoveAmfSubscriptionsInfo(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, problemDetails)
 	} else {
-		c.Data(rsp.Status, "application/json", responseBody)
+		c.Data(rsp.Status, ContentTypeJSON, responseBody)
 	}
 }

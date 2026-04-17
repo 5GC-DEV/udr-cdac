@@ -110,34 +110,18 @@ func manageGrpcClient(webuiUri string) {
 	count := 0
 	for {
 		if client != nil {
-			if client.CheckGrpcConnectivity() != "READY" {
-				time.Sleep(time.Second * 30)
-				count++
-				if count > 5 {
-					err = client.GetConfigClientConn().Close()
-					if err != nil {
-						logger.InitLog.Infof("failing ConfigClient is not closed properly: %+v", err)
-					}
-					client = nil
-					count = 0
-				}
-				logger.InitLog.Infoln("checking the connectivity readiness")
+			// Handle connectivity
+			var shouldContinue bool
+			client, count, shouldContinue = handleConnectivity(client, count)
+			if shouldContinue {
 				continue
 			}
 
-			if stream == nil {
-				stream, err = client.SubscribeToConfigServer()
-				if err != nil {
-					logger.InitLog.Infof("failing SubscribeToConfigServer: %+v", err)
-					continue
-				}
-			}
-
-			if configChannel == nil {
-				configChannel = client.PublishOnConfigChange(true, stream)
-				logger.InitLog.Infoln("PublishOnConfigChange is triggered")
-				go factory.UdrConfig.UpdateConfig(configChannel, factory.ConfigUpdateDbTrigger)
-				logger.InitLog.Infoln("UDR updateConfig is triggered")
+			// Handle stream & config channel
+			var ok bool
+			stream, configChannel, ok = handleStreamAndChannel(client, stream, configChannel)
+			if !ok {
+				continue
 			}
 
 			time.Sleep(time.Second * 5) // Fixes (avoids) 100% CPU utilization
@@ -152,6 +136,59 @@ func manageGrpcClient(webuiUri string) {
 			continue
 		}
 	}
+}
+
+func handleConnectivity(
+	client grpcClient.ConfClient,
+	count int,
+) (grpcClient.ConfClient, int, bool) {
+	if client.CheckGrpcConnectivity() != "READY" {
+		time.Sleep(time.Second * 30)
+		count++
+
+		if count > 5 {
+			err := client.GetConfigClientConn().Close()
+			if err != nil {
+				logger.InitLog.Infof("failing ConfigClient is not closed properly: %+v", err)
+			}
+			client = nil
+			count = 0
+		}
+
+		logger.InitLog.Infoln("checking the connectivity readiness")
+		return client, count, true
+	}
+
+	return client, count, false
+}
+
+func handleStreamAndChannel(
+	client grpcClient.ConfClient,
+	stream protos.ConfigService_NetworkSliceSubscribeClient,
+	configChannel chan *protos.NetworkSliceResponse,
+) (
+	protos.ConfigService_NetworkSliceSubscribeClient,
+	chan *protos.NetworkSliceResponse,
+	bool,
+) {
+	if stream == nil {
+		var err error
+		stream, err = client.SubscribeToConfigServer()
+		if err != nil {
+			logger.InitLog.Infof("failing SubscribeToConfigServer: %+v", err)
+			return stream, configChannel, false
+		}
+	}
+
+	if configChannel == nil {
+		configChannel = client.PublishOnConfigChange(true, stream)
+		logger.InitLog.Infoln("PublishOnConfigChange is triggered")
+
+		go factory.UdrConfig.UpdateConfig(configChannel, factory.ConfigUpdateDbTrigger)
+		logger.InitLog.Infoln("UDR updateConfig is triggered")
+	}
+
+	return stream, configChannel, true
 }
 
 func (udr *UDR) setLogLevel() {
@@ -175,7 +212,10 @@ func (udr *UDR) setLogLevel() {
 			logger.SetLogLevel(zap.InfoLevel)
 		}
 	}
+	setMongoDBLibLogLevel()
+}
 
+func setMongoDBLibLogLevel() {
 	if factory.UdrConfig.Logger.MongoDBLibrary != nil {
 		if factory.UdrConfig.Logger.MongoDBLibrary.DebugLevel != "" {
 			if level, err := zapcore.ParseLevel(factory.UdrConfig.Logger.MongoDBLibrary.DebugLevel); err != nil {

@@ -42,6 +42,39 @@ const (
 	SUBSCDATA_CTXDATA_SMSF_NON3GPPACCESS       = "subscriptionData.contextData.smsfNon3gppAccess"
 	SUBSCDATA_AUTHDATA_AUTHSTATUS              = "subscriptionData.authenticationData.authenticationStatus"
 	SUBSCDATA_PROVISION_SMDATA                 = "subscriptionData.provisionedData.smData"
+	AccessTypeAMF3GPP                          = "amf-3gpp-access"
+	AccessTypeAMFNon3GPP                       = "amf-non-3gpp-access"
+	AuthenticationSubscription                 = "authentication-subscription"
+	SORData                                    = "sor-data"
+	AuthenticationStatus                       = "authentication-status"
+	InfluenceData                              = "influence-data"
+	InfluenceDataNotify                        = "influence-data-notify"
+	InfluenceDataSubscription                  = "influence-data-subscription"
+	BDTData                                    = "bdt-data"
+	PLMNUEPolicySet                            = "plmn-ue-policy-set"
+	SponsorConnectivityData                    = "sponsor-connectivity-data"
+	SubsToNotify                               = "subs-to-notify"
+	AMData                                     = "am-data"
+	OperatorSpecificData                       = "operator-specific-data"
+	SMData                                     = "sm-data"
+	MongoOpExists                              = "$exists"
+	UEPolicySet                                = "ue-policy-set"
+	AMFSubscriptions                           = "amf-subscriptions"
+	EEProfileData                              = "ee-profile-data"
+	GroupData                                  = "group-data"
+	EESubscriptions                            = "ee-subscriptions"
+	PPData                                     = "pp-data"
+	ProvisionedData                            = "provisioned-data"
+	IdentityData                               = "identity-data"
+	OperatorDeterminedBarringData              = "operator-determined-barring-data"
+	SharedData                                 = "shared-data"
+	SDMSubscriptions                           = "sdm-subscriptions"
+	SMFRegistrations                           = "smf-registrations"
+	SMSF3GPPAccess                             = "smsf-3gpp-access"
+	SMSFNon3GPPAccess                          = "smsf-non-3gpp-access"
+	SMSManagementData                          = "sms-mng-data"
+	SMSData                                    = "sms-data"
+	TraceData                                  = "trace-data"
 )
 
 var CurrentResourceUri string
@@ -82,7 +115,7 @@ func toBsonM(data interface{}) (ret bson.M) {
 	if err != nil {
 		logger.CfgLog.Infoln("unmarshal fail", err)
 	}
-	return
+	return ret
 }
 
 // AddEntrySmPolicyTable ... write table entries into policyData.ues.smData
@@ -200,18 +233,32 @@ func QueryAmDataProcedure(collName string, ueId string, servingPlmnId string) (*
 
 func HandleAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Response {
 	logger.DataRepoLog.Infoln("handle AmfContext3gpp")
-	collName := SUBSCDATA_CTXDATA_AMF_3GPPACCESS
+	return handlePatchRequest(
+		request,
+		SUBSCDATA_CTXDATA_AMF_3GPPACCESS,
+		AccessTypeAMF3GPP,
+		AmfContext3gppProcedure,
+	)
+}
+
+func handlePatchRequest(
+	request *httpwrapper.Request,
+	collName string,
+	statsType string,
+	procedure func(string, string, []models.PatchItem) *models.ProblemDetails,
+) *httpwrapper.Response {
 	patchItem := request.Body.([]models.PatchItem)
 	ueId := request.Params["ueId"]
 
-	problemDetails := AmfContext3gppProcedure(collName, ueId, patchItem)
-	if problemDetails == nil {
-		stats.IncrementUdrSubscriptionDataStats("update", "amf-3gpp-access", "SUCCESS")
-		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
-	} else {
-		stats.IncrementUdrSubscriptionDataStats("update", "amf-3gpp-access", "FAILURE")
+	problemDetails := procedure(collName, ueId, patchItem)
+
+	if problemDetails != nil {
+		stats.IncrementUdrSubscriptionDataStats("update", statsType, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
+
+	stats.IncrementUdrSubscriptionDataStats("update", statsType, "SUCCESS")
+	return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 }
 
 func AmfContext3gppProcedure(collName string, ueId string, patchItem []models.PatchItem) *models.ProblemDetails {
@@ -248,7 +295,7 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 
 	problemDetails, ok, exists, err := CreateAmfContext3gppProcedure(collName, ueId, Amf3GppAccessRegistration)
 	if err != nil {
-		stats.IncrementUdrSubscriptionDataStats("create", "amf-3gpp-access", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("create", AccessTypeAMF3GPP, "FAILURE")
 		return httpwrapper.NewResponse(http.StatusForbidden, nil, problemDetails)
 	}
 	if exists {
@@ -257,7 +304,7 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 	if !ok {
 		logger.DataRepoLog.Debugln("PUT request failed")
 	}
-	stats.IncrementUdrSubscriptionDataStats("create", "amf-3gpp-access", "SUCCESS")
+	stats.IncrementUdrSubscriptionDataStats("create", AccessTypeAMF3GPP, "SUCCESS")
 	return httpwrapper.NewResponse(http.StatusCreated, nil, map[string]interface{}{})
 }
 
@@ -308,10 +355,10 @@ func HandleQueryAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respon
 	response, problemDetails := QueryAmfContext3gppProcedure(collName, ueId)
 
 	if response != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "amf-3gpp-access", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("get", AccessTypeAMF3GPP, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "amf-3gpp-access", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("get", AccessTypeAMF3GPP, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
@@ -344,10 +391,10 @@ func HandleAmfContextNon3gpp(request *httpwrapper.Request) *httpwrapper.Response
 	problemDetails := AmfContextNon3gppProcedure(ueId, collName, patchItem, filter)
 
 	if problemDetails == nil {
-		stats.IncrementUdrSubscriptionDataStats("update", "amf-non-3gpp-access", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("update", AccessTypeAMFNon3GPP, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 	} else {
-		stats.IncrementUdrSubscriptionDataStats("update", "amf-non-3gpp-access", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("update", AccessTypeAMFNon3GPP, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 }
@@ -386,9 +433,9 @@ func HandleCreateAmfContextNon3gpp(request *httpwrapper.Request) *httpwrapper.Re
 
 	err := CreateAmfContextNon3gppProcedure(AmfNon3GppAccessRegistration, collName, ueId)
 	if err == nil {
-		stats.IncrementUdrSubscriptionDataStats("create", "amf-non-3gpp-access", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("create", AccessTypeAMFNon3GPP, "SUCCESS")
 	} else {
-		stats.IncrementUdrSubscriptionDataStats("create", "amf-non-3gpp-access", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("create", AccessTypeAMFNon3GPP, "FAILURE")
 	}
 
 	return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
@@ -417,15 +464,15 @@ func HandleQueryAmfContextNon3gpp(request *httpwrapper.Request) *httpwrapper.Res
 	response, problemDetails := QueryAmfContextNon3gppProcedure(collName, ueId)
 
 	if response != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "amf-non-3gpp-access", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("get", AccessTypeAMFNon3GPP, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "amf-non-3gpp-access", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("get", AccessTypeAMFNon3GPP, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrSubscriptionDataStats("get", "amf-non-3gpp-access", "FAILURE")
+	stats.IncrementUdrSubscriptionDataStats("get", AccessTypeAMFNon3GPP, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -453,10 +500,10 @@ func HandleModifyAuthentication(request *httpwrapper.Request) *httpwrapper.Respo
 	problemDetails := ModifyAuthenticationProcedure(collName, ueId, patchItem)
 
 	if problemDetails == nil {
-		stats.IncrementUdrSubscriptionDataStats("update", "authentication-subscription", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("update", AuthenticationSubscription, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 	} else {
-		stats.IncrementUdrSubscriptionDataStats("update", "authentication-subscription", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("update", AuthenticationSubscription, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 }
@@ -495,15 +542,15 @@ func HandleQueryAuthSubsData(request *httpwrapper.Request) *httpwrapper.Response
 	response, problemDetails := QueryAuthSubsDataProcedure(collName, ueId)
 
 	if response != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "authentication-subscription", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("get", AuthenticationSubscription, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "authentication-subscription", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("get", AuthenticationSubscription, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrSubscriptionDataStats("update", "authentication-subscription", "FAILURE")
+	stats.IncrementUdrSubscriptionDataStats("update", AuthenticationSubscription, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -530,9 +577,9 @@ func HandleCreateAuthenticationSoR(request *httpwrapper.Request) *httpwrapper.Re
 
 	err := CreateAuthenticationSoRProcedure(collName, ueId, putData)
 	if err == nil {
-		stats.IncrementUdrSubscriptionDataStats("create", "sor-data", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("create", SORData, "SUCCESS")
 	} else {
-		stats.IncrementUdrSubscriptionDataStats("create", "sor-data", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("create", SORData, "FAILURE")
 	}
 
 	return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
@@ -558,15 +605,15 @@ func HandleQueryAuthSoR(request *httpwrapper.Request) *httpwrapper.Response {
 	response, problemDetails := QueryAuthSoRProcedure(collName, ueId)
 
 	if response != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "sor-data", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("get", SORData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "sor-data", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("get", SORData, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrSubscriptionDataStats("get", "sor-data", "FAILURE")
+	stats.IncrementUdrSubscriptionDataStats("get", SORData, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -590,12 +637,12 @@ func HandleCreateAuthenticationStatus(request *httpwrapper.Request) *httpwrapper
 	// The request body is now asserted as the AuthEvent model.
 	authEvent := request.Body.(models.AuthEvent)
 	ueId := request.Params["ueId"]
-	collName := "subscriptionData.authenticationData.authenticationStatus"
+	collName := SUBSCDATA_AUTHDATA_AUTHSTATUS
 	// The procedure call now returns the created event object and an error.
 	createdEvent, err := CreateAuthenticationStatusProcedure(collName, ueId, authEvent)
 	if err != nil {
 		// Handle database errors returned from the procedure.
-		stats.IncrementUdrSubscriptionDataStats("create", "authentication-status", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("create", AuthenticationStatus, "FAILURE")
 		problemDetails := models.ProblemDetails{
 			Title:  "System failure",
 			Status: http.StatusInternalServerError,
@@ -605,7 +652,7 @@ func HandleCreateAuthenticationStatus(request *httpwrapper.Request) *httpwrapper
 		return httpwrapper.NewResponse(http.StatusInternalServerError, nil, problemDetails)
 	}
 
-	stats.IncrementUdrSubscriptionDataStats("create", "authentication-status", "SUCCESS")
+	stats.IncrementUdrSubscriptionDataStats("create", AuthenticationStatus, "SUCCESS")
 	// Construct the mandatory Location header.
 	locationURI := fmt.Sprintf("%s/subscription-data/%s/authentication-data/authentication-status",
 		udr_context.UDR_Self().GetIPv4GroupUri(udr_context.NUDR_DR), ueId)
@@ -636,20 +683,20 @@ func HandleQueryAuthenticationStatus(request *httpwrapper.Request) *httpwrapper.
 	logger.DataRepoLog.Infoln("handle QueryAuthenticationStatus")
 
 	ueId := request.Params["ueId"]
-	collName := "subscriptionData.authenticationData.authenticationStatus"
+	collName := SUBSCDATA_AUTHDATA_AUTHSTATUS
 
 	response, problemDetails := QueryAuthenticationStatusProcedure(collName, ueId)
 
 	if response != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "authentication-status", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("get", AuthenticationStatus, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "authentication-status", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("get", AuthenticationStatus, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrSubscriptionDataStats("get", "authentication-status", "FAILURE")
+	stats.IncrementUdrSubscriptionDataStats("get", AuthenticationStatus, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -680,12 +727,12 @@ func HandleApplicationDataInfluenceDataGet(queryParams map[string][]string) *htt
 	supis := queryParams["supis"]
 	if len(influIDs) == 0 && len(dnns) == 0 && len(snssais) == 0 && len(intGroupIDs) == 0 && len(supis) == 0 {
 		pd := util.ProblemDetailsMalformedReqSyntax("No query parameters")
-		stats.IncrementUdrApplicationDataStats("get", "influence-data", "FAILURE")
+		stats.IncrementUdrApplicationDataStats("get", InfluenceData, "FAILURE")
 		return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 	}
 
 	response := getApplicationDataInfluenceDatafromDB(influIDs, dnns, snssais, intGroupIDs, supis)
-	stats.IncrementUdrApplicationDataStats("get", "influence-data", "SUCCESS")
+	stats.IncrementUdrApplicationDataStats("get", InfluenceData, "SUCCESS")
 
 	return httpwrapper.NewResponse(http.StatusOK, nil, response)
 }
@@ -774,9 +821,9 @@ func deleteApplicationDataIndividualInfluenceDataFromDB(influID string) {
 	filter := bson.M{"influenceId": influID}
 	err := deleteDataFromDB(APPDATA_INFLUDATA_DB_COLLECTION_NAME, filter)
 	if err == nil {
-		stats.IncrementUdrApplicationDataStats("delete", "influence-data", "SUCCESS")
+		stats.IncrementUdrApplicationDataStats("delete", InfluenceData, "SUCCESS")
 	} else {
-		stats.IncrementUdrApplicationDataStats("delete", "influence-data", "FAILURE")
+		stats.IncrementUdrApplicationDataStats("delete", InfluenceData, "FAILURE")
 	}
 }
 
@@ -786,7 +833,7 @@ func HandleApplicationDataInfluenceDataInfluenceIdPatch(influID string,
 	logger.DataRepoLog.Infof("handle ApplicationDataInfluenceDataInfluenceIdPatch: influID=%q", influID)
 
 	response, status := patchApplicationDataIndividualInfluenceDataToDB(influID, trInfluDataPatch)
-	stats.IncrementUdrApplicationDataStats("update", "influence-data", "SUCCESS")
+	stats.IncrementUdrApplicationDataStats("update", InfluenceData, "SUCCESS")
 
 	return httpwrapper.NewResponse(status, nil, response)
 }
@@ -873,33 +920,33 @@ func HandleApplicationDataInfluenceDataSubsToNotifyGet(queryParams map[string][]
 	intGroupID := queryParams["internal-Group-Id"]
 	supi := queryParams["supi"]
 	if len(dnn) == 0 && len(snssai) == 0 && len(intGroupID) == 0 && len(supi) == 0 {
-		stats.IncrementUdrApplicationDataStats("get", "influence-data-notify", "FAILURE")
+		stats.IncrementUdrApplicationDataStats("get", InfluenceDataNotify, "FAILURE")
 		pd := util.ProblemDetailsMalformedReqSyntax("No query parameters")
 		return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 	}
 	if len(dnn) > 1 {
-		stats.IncrementUdrApplicationDataStats("get", "influence-data-notify", "FAILURE")
+		stats.IncrementUdrApplicationDataStats("get", InfluenceDataNotify, "FAILURE")
 		pd := util.ProblemDetailsMalformedReqSyntax("Too many dnn query parameters")
 		return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 	}
 	if len(snssai) > 1 {
-		stats.IncrementUdrApplicationDataStats("get", "influence-data-notify", "FAILURE")
+		stats.IncrementUdrApplicationDataStats("get", InfluenceDataNotify, "FAILURE")
 		pd := util.ProblemDetailsMalformedReqSyntax("Too many snssai query parameters")
 		return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 	}
 	if len(intGroupID) > 1 {
-		stats.IncrementUdrApplicationDataStats("get", "influence-data-notify", "FAILURE")
+		stats.IncrementUdrApplicationDataStats("get", InfluenceDataNotify, "FAILURE")
 		pd := util.ProblemDetailsMalformedReqSyntax("Too many internal-Group-Id query parameters")
 		return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 	}
 	if len(supi) > 1 {
-		stats.IncrementUdrApplicationDataStats("get", "influence-data-notify", "FAILURE")
+		stats.IncrementUdrApplicationDataStats("get", InfluenceDataNotify, "FAILURE")
 		pd := util.ProblemDetailsMalformedReqSyntax("Too many supi query parameters")
 		return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 	}
 
 	response := getApplicationDataInfluenceDataSubsToNotifyfromDB(dnn, snssai, intGroupID, supi)
-	stats.IncrementUdrApplicationDataStats("get", "influence-data-notify", "SUCCESS")
+	stats.IncrementUdrApplicationDataStats("get", InfluenceDataNotify, "SUCCESS")
 
 	return httpwrapper.NewResponse(http.StatusOK, nil, response)
 }
@@ -1000,9 +1047,9 @@ func HandleApplicationDataInfluenceDataSubsToNotifySubscriptionIdDelete(subscID 
 
 	err := deleteApplicationDataIndividualInfluenceDataSubsToNotifyFromDB(subscID)
 	if err == nil {
-		stats.IncrementUdrApplicationDataStats("delete", "influence-data-subscription", "SUCCESS")
+		stats.IncrementUdrApplicationDataStats("delete", InfluenceDataSubscription, "SUCCESS")
 	} else {
-		stats.IncrementUdrApplicationDataStats("delete", "influence-data-subscription", "FAILURE")
+		stats.IncrementUdrApplicationDataStats("delete", InfluenceDataSubscription, "FAILURE")
 	}
 
 	return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
@@ -1019,10 +1066,10 @@ func HandleApplicationDataInfluenceDataSubsToNotifySubscriptionIdGet(subscID str
 	response, problemDetails := getApplicationDataIndividualInfluenceDataSubsToNotifyFromDB(subscID)
 
 	if problemDetails != nil {
-		stats.IncrementUdrApplicationDataStats("get", "influence-data-subscription", "FAILURE")
+		stats.IncrementUdrApplicationDataStats("get", InfluenceDataSubscription, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
-	stats.IncrementUdrApplicationDataStats("get", "influence-data-subscription", "SUCCESS")
+	stats.IncrementUdrApplicationDataStats("get", InfluenceDataSubscription, "SUCCESS")
 	return httpwrapper.NewResponse(http.StatusOK, nil, response)
 }
 
@@ -1046,9 +1093,9 @@ func HandleApplicationDataInfluenceDataSubsToNotifySubscriptionIdPut(
 
 	response, status := putApplicationDataIndividualInfluenceDataSubsToNotifyToDB(subscID, trInfluSub)
 	if response != nil {
-		stats.IncrementUdrApplicationDataStats("update", "influence-data-subscription", "SUCCESS")
+		stats.IncrementUdrApplicationDataStats("update", InfluenceDataSubscription, "SUCCESS")
 	} else {
-		stats.IncrementUdrApplicationDataStats("update", "influence-data-subscription", "FAILURE")
+		stats.IncrementUdrApplicationDataStats("update", InfluenceDataSubscription, "FAILURE")
 	}
 
 	return httpwrapper.NewResponse(status, nil, response)
@@ -1201,9 +1248,9 @@ func HandlePolicyDataBdtDataBdtReferenceIdDelete(request *httpwrapper.Request) *
 
 	err := PolicyDataBdtDataBdtReferenceIdDeleteProcedure(collName, bdtReferenceId)
 	if err == nil {
-		stats.IncrementUdrPolicyDataStats("delete", "bdt-data", "SUCCESS")
+		stats.IncrementUdrPolicyDataStats("delete", BDTData, "SUCCESS")
 	} else {
-		stats.IncrementUdrPolicyDataStats("delete", "bdt-data", "FAILURE")
+		stats.IncrementUdrPolicyDataStats("delete", BDTData, "FAILURE")
 	}
 	return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 }
@@ -1225,15 +1272,15 @@ func HandlePolicyDataBdtDataBdtReferenceIdGet(request *httpwrapper.Request) *htt
 
 	response, problemDetails := PolicyDataBdtDataBdtReferenceIdGetProcedure(collName, bdtReferenceId)
 	if response != nil {
-		stats.IncrementUdrPolicyDataStats("get", "bdt-data", "SUCCESS")
+		stats.IncrementUdrPolicyDataStats("get", BDTData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrPolicyDataStats("get", "bdt-data", "FAILURE")
+		stats.IncrementUdrPolicyDataStats("get", BDTData, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrPolicyDataStats("get", "bdt-data", "FAILURE")
+	stats.IncrementUdrPolicyDataStats("get", BDTData, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -1263,12 +1310,12 @@ func HandlePolicyDataBdtDataBdtReferenceIdPut(request *httpwrapper.Request) *htt
 
 	response := PolicyDataBdtDataBdtReferenceIdPutProcedure(collName, bdtReferenceId, bdtData)
 	if response != nil {
-		stats.IncrementUdrPolicyDataStats("update", "bdt-data", "SUCCESS")
+		stats.IncrementUdrPolicyDataStats("update", BDTData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrPolicyDataStats("update", "bdt-data", "FAILURE")
+	stats.IncrementUdrPolicyDataStats("update", BDTData, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -1298,7 +1345,7 @@ func HandlePolicyDataBdtDataGet(request *httpwrapper.Request) *httpwrapper.Respo
 	collName := POLICYDATA_BDTDATA
 
 	response := PolicyDataBdtDataGetProcedure(collName)
-	stats.IncrementUdrPolicyDataStats("get", "bdt-data", "SUCCESS")
+	stats.IncrementUdrPolicyDataStats("get", BDTData, "SUCCESS")
 	return httpwrapper.NewResponse(http.StatusOK, nil, response)
 }
 
@@ -1320,15 +1367,15 @@ func HandlePolicyDataPlmnsPlmnIdUePolicySetGet(request *httpwrapper.Request) *ht
 	response, problemDetails := PolicyDataPlmnsPlmnIdUePolicySetGetProcedure(collName, plmnId)
 
 	if response != nil {
-		stats.IncrementUdrPolicyDataStats("get", "plmn-ue-policy-set", "SUCCESS")
+		stats.IncrementUdrPolicyDataStats("get", PLMNUEPolicySet, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrPolicyDataStats("get", "plmn-ue-policy-set", "FAILURE")
+		stats.IncrementUdrPolicyDataStats("get", PLMNUEPolicySet, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrPolicyDataStats("get", "plmn-ue-policy-set", "FAILURE")
+	stats.IncrementUdrPolicyDataStats("get", PLMNUEPolicySet, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -1358,15 +1405,15 @@ func HandlePolicyDataSponsorConnectivityDataSponsorIdGet(request *httpwrapper.Re
 
 	switch status {
 	case http.StatusOK:
-		stats.IncrementUdrPolicyDataStats("get", "sponsor-connectivity-data", "SUCCESS")
+		stats.IncrementUdrPolicyDataStats("get", SponsorConnectivityData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	case http.StatusNoContent:
-		stats.IncrementUdrPolicyDataStats("get", "sponsor-connectivity-data", "SUCCESS")
+		stats.IncrementUdrPolicyDataStats("get", SponsorConnectivityData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrPolicyDataStats("get", "sponsor-connectivity-data", "FAILURE")
+	stats.IncrementUdrPolicyDataStats("get", SponsorConnectivityData, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -1396,7 +1443,7 @@ func HandlePolicyDataSubsToNotifyPost(request *httpwrapper.Request) *httpwrapper
 
 	headers := http.Header{}
 	headers.Set("Location", locationHeader)
-	stats.IncrementUdrPolicyDataStats("create", "subs-to-notify", "SUCCESS")
+	stats.IncrementUdrPolicyDataStats("create", SubsToNotify, "SUCCESS")
 	return httpwrapper.NewResponse(http.StatusCreated, headers, PolicyDataSubscription)
 }
 
@@ -1423,10 +1470,10 @@ func HandlePolicyDataSubsToNotifySubsIdDelete(request *httpwrapper.Request) *htt
 	problemDetails := PolicyDataSubsToNotifySubsIdDeleteProcedure(subsId)
 
 	if problemDetails == nil {
-		stats.IncrementUdrPolicyDataStats("delete", "subs-to-notify", "SUCCESS")
+		stats.IncrementUdrPolicyDataStats("delete", SubsToNotify, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 	} else {
-		stats.IncrementUdrPolicyDataStats("delete", "subs-to-notify", "FAILURE")
+		stats.IncrementUdrPolicyDataStats("delete", SubsToNotify, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 }
@@ -1451,10 +1498,10 @@ func HandlePolicyDataSubsToNotifySubsIdPut(request *httpwrapper.Request) *httpwr
 	response, problemDetails := PolicyDataSubsToNotifySubsIdPutProcedure(subsId, policyDataSubscription)
 
 	if problemDetails == nil {
-		stats.IncrementUdrPolicyDataStats("update", "subs-to-notify", "SUCCESS")
+		stats.IncrementUdrPolicyDataStats("update", SubsToNotify, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else {
-		stats.IncrementUdrPolicyDataStats("update", "subs-to-notify", "FAILURE")
+		stats.IncrementUdrPolicyDataStats("update", SubsToNotify, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 }
@@ -1482,15 +1529,15 @@ func HandlePolicyDataUesUeIdAmDataGet(request *httpwrapper.Request) *httpwrapper
 	response, problemDetails := PolicyDataUesUeIdAmDataGetProcedure(collName, ueId)
 
 	if response != nil {
-		stats.IncrementUdrPolicyDataStats("get", "am-data", "SUCCESS")
+		stats.IncrementUdrPolicyDataStats("get", AMData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrPolicyDataStats("get", "am-data", "FAILURE")
+		stats.IncrementUdrPolicyDataStats("get", AMData, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrPolicyDataStats("get", "am-data", "FAILURE")
+	stats.IncrementUdrPolicyDataStats("get", AMData, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -1520,15 +1567,15 @@ func HandlePolicyDataUesUeIdOperatorSpecificDataGet(request *httpwrapper.Request
 	response, problemDetails := PolicyDataUesUeIdOperatorSpecificDataGetProcedure(collName, ueId)
 
 	if response != nil {
-		stats.IncrementUdrPolicyDataStats("get", "operator-specific-data", "SUCCESS")
+		stats.IncrementUdrPolicyDataStats("get", OperatorSpecificData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrPolicyDataStats("get", "operator-specific-data", "FAILURE")
+		stats.IncrementUdrPolicyDataStats("get", OperatorSpecificData, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrPolicyDataStats("get", "operator-specific-data", "FAILURE")
+	stats.IncrementUdrPolicyDataStats("get", OperatorSpecificData, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -1560,10 +1607,10 @@ func HandlePolicyDataUesUeIdOperatorSpecificDataPatch(request *httpwrapper.Reque
 	problemDetails := PolicyDataUesUeIdOperatorSpecificDataPatchProcedure(collName, ueId, patchItem)
 
 	if problemDetails == nil {
-		stats.IncrementUdrPolicyDataStats("update", "operator-specific-data", "SUCCESS")
+		stats.IncrementUdrPolicyDataStats("update", OperatorSpecificData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 	} else {
-		stats.IncrementUdrPolicyDataStats("update", "operator-specific-data", "FAILURE")
+		stats.IncrementUdrPolicyDataStats("update", OperatorSpecificData, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 }
@@ -1599,9 +1646,9 @@ func HandlePolicyDataUesUeIdOperatorSpecificDataPut(request *httpwrapper.Request
 
 	err := PolicyDataUesUeIdOperatorSpecificDataPutProcedure(collName, ueId, OperatorSpecificDataContainer)
 	if err == nil {
-		stats.IncrementUdrPolicyDataStats("create", "operator-specific-data", "SUCCESS")
+		stats.IncrementUdrPolicyDataStats("create", OperatorSpecificData, "SUCCESS")
 	} else {
-		stats.IncrementUdrPolicyDataStats("create", "operator-specific-data", "FAILURE")
+		stats.IncrementUdrPolicyDataStats("create", OperatorSpecificData, "FAILURE")
 	}
 
 	return httpwrapper.NewResponse(http.StatusOK, nil, map[string]interface{}{})
@@ -1637,15 +1684,15 @@ func HandlePolicyDataUesUeIdSmDataGet(request *httpwrapper.Request) *httpwrapper
 
 	response, problemDetails := PolicyDataUesUeIdSmDataGetProcedure(collName, ueId, sNssai, dnn)
 	if response != nil {
-		stats.IncrementUdrPolicyDataStats("get", "sm-data", "SUCCESS")
+		stats.IncrementUdrPolicyDataStats("get", SMData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrPolicyDataStats("get", "sm-data", "FAILURE")
+		stats.IncrementUdrPolicyDataStats("get", SMData, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrPolicyDataStats("get", "sm-data", "FAILURE")
+	stats.IncrementUdrPolicyDataStats("get", SMData, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -1655,10 +1702,10 @@ func PolicyDataUesUeIdSmDataGetProcedure(collName string, ueId string, snssai mo
 	filter := bson.M{"ueId": ueId}
 
 	if !reflect.DeepEqual(snssai, models.Snssai{}) {
-		filter["smPolicySnssaiData."+util.SnssaiModelsToHex(snssai)] = bson.M{"$exists": true}
+		filter["smPolicySnssaiData."+util.SnssaiModelsToHex(snssai)] = bson.M{MongoOpExists: true}
 	}
 	if !reflect.DeepEqual(snssai, models.Snssai{}) && dnn != "" {
-		filter["smPolicySnssaiData."+util.SnssaiModelsToHex(snssai)+".smPolicyDnnData."+dnn] = bson.M{"$exists": true}
+		filter["smPolicySnssaiData."+util.SnssaiModelsToHex(snssai)+".smPolicyDnnData."+dnn] = bson.M{MongoOpExists: true}
 	}
 
 	smPolicyData, errGetOne := CommonDBClient.RestfulAPIGetOne(collName, filter)
@@ -1666,35 +1713,42 @@ func PolicyDataUesUeIdSmDataGetProcedure(collName string, ueId string, snssai mo
 		logger.DataRepoLog.Warnln(errGetOne)
 	}
 	if smPolicyData != nil {
-		var smPolicyDataResp models.SmPolicyData
-		err := json.Unmarshal(util.MapToByte(smPolicyData), &smPolicyDataResp)
-		if err != nil {
-			logger.DataRepoLog.Warnln(err)
-		}
-		{
-			collName := POLICYDATA_UES_SMDATA_USAGEMONDATA
-			filter := bson.M{"ueId": ueId}
-			usageMonDataMapArray, errGetMany := CommonDBClient.RestfulAPIGetMany(collName, filter)
-			if errGetMany != nil {
-				logger.DataRepoLog.Warnln(errGetMany)
-			}
-
-			if !reflect.DeepEqual(usageMonDataMapArray, []map[string]interface{}{}) {
-				var usageMonDataArray []models.UsageMonData
-				err = json.Unmarshal(util.MapArrayToByte(usageMonDataMapArray), &usageMonDataArray)
-				if err != nil {
-					logger.DataRepoLog.Warnln(err)
-				}
-				smPolicyDataResp.UmData = make(map[string]models.UsageMonData)
-				for _, element := range usageMonDataArray {
-					smPolicyDataResp.UmData[element.LimitId] = element
-				}
-			}
-		}
-		return &smPolicyDataResp, nil
+		return SmDataGetProcedureSmPolicyDataResponse(ueId, smPolicyData)
 	} else {
 		return nil, util.ProblemDetailsNotFound("USER_NOT_FOUND")
 	}
+}
+
+func SmDataGetProcedureSmPolicyDataResponse(
+	ueId string,
+	smPolicyData map[string]interface{},
+) (*models.SmPolicyData, *models.ProblemDetails) {
+	var smPolicyDataResp models.SmPolicyData
+	err := json.Unmarshal(util.MapToByte(smPolicyData), &smPolicyDataResp)
+	if err != nil {
+		logger.DataRepoLog.Warnln(err)
+	}
+	{
+		collName := POLICYDATA_UES_SMDATA_USAGEMONDATA
+		filter := bson.M{"ueId": ueId}
+		usageMonDataMapArray, errGetMany := CommonDBClient.RestfulAPIGetMany(collName, filter)
+		if errGetMany != nil {
+			logger.DataRepoLog.Warnln(errGetMany)
+		}
+
+		if !reflect.DeepEqual(usageMonDataMapArray, []map[string]interface{}{}) {
+			var usageMonDataArray []models.UsageMonData
+			err = json.Unmarshal(util.MapArrayToByte(usageMonDataMapArray), &usageMonDataArray)
+			if err != nil {
+				logger.DataRepoLog.Warnln(err)
+			}
+			smPolicyDataResp.UmData = make(map[string]models.UsageMonData)
+			for _, element := range usageMonDataArray {
+				smPolicyDataResp.UmData[element.LimitId] = element
+			}
+		}
+	}
+	return &smPolicyDataResp, nil
 }
 
 func HandlePolicyDataUesUeIdSmDataPatch(request *httpwrapper.Request) *httpwrapper.Response {
@@ -1706,10 +1760,10 @@ func HandlePolicyDataUesUeIdSmDataPatch(request *httpwrapper.Request) *httpwrapp
 
 	problemDetails := PolicyDataUesUeIdSmDataPatchProcedure(collName, ueId, usageMonData)
 	if problemDetails == nil {
-		stats.IncrementUdrPolicyDataStats("update", "sm-data", "SUCCESS")
+		stats.IncrementUdrPolicyDataStats("update", SMData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 	} else {
-		stats.IncrementUdrPolicyDataStats("update", "sm-data", "FAILURE")
+		stats.IncrementUdrPolicyDataStats("update", SMData, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 }
@@ -1718,7 +1772,6 @@ func PolicyDataUesUeIdSmDataPatchProcedure(collName string, ueId string,
 	UsageMonData map[string]models.UsageMonData,
 ) *models.ProblemDetails {
 	filter := bson.M{"ueId": ueId}
-
 	successAll := true
 	for k, usageMonData := range UsageMonData {
 		limitId := k
@@ -1739,7 +1792,15 @@ func PolicyDataUesUeIdSmDataPatchProcedure(collName string, ueId string,
 			PreHandlePolicyDataChangeNotification(ueId, limitId, usageMonData)
 		}
 	}
+	return SmDataPatchProcedureSuccessAll(successAll, collName, ueId, filter)
+}
 
+func SmDataPatchProcedureSuccessAll(
+	successAll bool,
+	collName string,
+	ueId string,
+	filter bson.M,
+) *models.ProblemDetails {
 	if successAll {
 		smPolicyDataBsonM, errGetOneNew := CommonDBClient.RestfulAPIGetOne(collName, filter)
 		if errGetOneNew != nil {
@@ -1786,9 +1847,9 @@ func HandlePolicyDataUesUeIdSmDataUsageMonIdDelete(request *httpwrapper.Request)
 
 	err := PolicyDataUesUeIdSmDataUsageMonIdDeleteProcedure(collName, ueId, usageMonId)
 	if err == nil {
-		stats.IncrementUdrPolicyDataStats("delete", "sm-data", "SUCCESS")
+		stats.IncrementUdrPolicyDataStats("delete", SMData, "SUCCESS")
 	} else {
-		stats.IncrementUdrPolicyDataStats("delete", "sm-data", "FAILURE")
+		stats.IncrementUdrPolicyDataStats("delete", SMData, "FAILURE")
 	}
 	return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 }
@@ -1812,10 +1873,10 @@ func HandlePolicyDataUesUeIdSmDataUsageMonIdGet(request *httpwrapper.Request) *h
 	response := PolicyDataUesUeIdSmDataUsageMonIdGetProcedure(collName, usageMonId, ueId)
 
 	if response != nil {
-		stats.IncrementUdrPolicyDataStats("get", "sm-data", "SUCCESS")
+		stats.IncrementUdrPolicyDataStats("get", SMData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else {
-		stats.IncrementUdrPolicyDataStats("get", "sm-data", "FAILURE")
+		stats.IncrementUdrPolicyDataStats("get", SMData, "FAILURE")
 		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 	}
 }
@@ -1842,7 +1903,7 @@ func HandlePolicyDataUesUeIdSmDataUsageMonIdPut(request *httpwrapper.Request) *h
 	collName := POLICYDATA_UES_SMDATA_USAGEMONDATA
 
 	response := PolicyDataUesUeIdSmDataUsageMonIdPutProcedure(collName, ueId, usageMonId, usageMonData)
-	stats.IncrementUdrPolicyDataStats("create", "sm-data", "SUCCESS")
+	stats.IncrementUdrPolicyDataStats("create", SMData, "SUCCESS")
 
 	return httpwrapper.NewResponse(http.StatusCreated, nil, response)
 }
@@ -1871,15 +1932,15 @@ func HandlePolicyDataUesUeIdUePolicySetGet(request *httpwrapper.Request) *httpwr
 	response, problemDetails := PolicyDataUesUeIdUePolicySetGetProcedure(collName, ueId)
 
 	if response != nil {
-		stats.IncrementUdrPolicyDataStats("get", "ue-policy-set", "SUCCESS")
+		stats.IncrementUdrPolicyDataStats("get", UEPolicySet, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrPolicyDataStats("get", "ue-policy-set", "FAILURE")
+		stats.IncrementUdrPolicyDataStats("get", UEPolicySet, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrPolicyDataStats("get", "ue-policy-set", "FAILURE")
+	stats.IncrementUdrPolicyDataStats("get", UEPolicySet, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -1955,15 +2016,15 @@ func HandlePolicyDataUesUeIdUePolicySetPut(request *httpwrapper.Request) *httpwr
 
 	switch status {
 	case http.StatusNoContent:
-		stats.IncrementUdrPolicyDataStats("create", "ue-policy-set", "SUCCESS")
+		stats.IncrementUdrPolicyDataStats("create", UEPolicySet, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 	case http.StatusCreated:
-		stats.IncrementUdrPolicyDataStats("create", "ue-policy-set", "SUCCESS")
+		stats.IncrementUdrPolicyDataStats("create", UEPolicySet, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusCreated, nil, response)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrPolicyDataStats("create", "ue-policy-set", "FAILURE")
+	stats.IncrementUdrPolicyDataStats("create", UEPolicySet, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -1995,10 +2056,10 @@ func HandleCreateAMFSubscriptions(request *httpwrapper.Request) *httpwrapper.Res
 	problemDetails := CreateAMFSubscriptionsProcedure(subsId, ueId, AmfSubscriptionInfo)
 
 	if problemDetails == nil {
-		stats.IncrementUdrSubscriptionDataStats("create", "amf-subscriptions", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("create", AMFSubscriptions, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 	} else {
-		stats.IncrementUdrSubscriptionDataStats("create", "amf-subscriptions", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("create", AMFSubscriptions, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 }
@@ -2031,10 +2092,10 @@ func HandleRemoveAmfSubscriptionsInfo(request *httpwrapper.Request) *httpwrapper
 	problemDetails := RemoveAmfSubscriptionsInfoProcedure(subsId, ueId)
 
 	if problemDetails == nil {
-		stats.IncrementUdrSubscriptionDataStats("delete", "amf-subscriptions", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("delete", AMFSubscriptions, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 	} else {
-		stats.IncrementUdrSubscriptionDataStats("delete", "amf-subscriptions", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("delete", AMFSubscriptions, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 }
@@ -2072,10 +2133,10 @@ func HandleModifyAmfSubscriptionInfo(request *httpwrapper.Request) *httpwrapper.
 	problemDetails := ModifyAmfSubscriptionInfoProcedure(ueId, subsId, patchItem)
 
 	if problemDetails == nil {
-		stats.IncrementUdrSubscriptionDataStats("update", "amf-subscriptions", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("update", AMFSubscriptions, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 	} else {
-		stats.IncrementUdrSubscriptionDataStats("update", "amf-subscriptions", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("update", AMFSubscriptions, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 }
@@ -2139,15 +2200,15 @@ func HandleGetAmfSubscriptionInfo(request *httpwrapper.Request) *httpwrapper.Res
 
 	response, problemDetails := GetAmfSubscriptionInfoProcedure(subsId, ueId)
 	if response != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "amf-subscriptions", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("get", AMFSubscriptions, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "amf-subscriptions", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("get", AMFSubscriptions, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrSubscriptionDataStats("get", "amf-subscriptions", "FAILURE")
+	stats.IncrementUdrSubscriptionDataStats("get", AMFSubscriptions, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -2183,15 +2244,15 @@ func HandleQueryEEData(request *httpwrapper.Request) *httpwrapper.Response {
 	response, problemDetails := QueryEEDataProcedure(collName, ueId)
 
 	if response != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "ee-profile-data", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("get", EEProfileData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "ee-profile-data", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("get", EEProfileData, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrSubscriptionDataStats("get", "ee-profile-data", "FAILURE")
+	stats.IncrementUdrSubscriptionDataStats("get", EEProfileData, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -2218,10 +2279,10 @@ func HandleRemoveEeGroupSubscriptions(request *httpwrapper.Request) *httpwrapper
 	problemDetails := RemoveEeGroupSubscriptionsProcedure(ueGroupId, subsId)
 
 	if problemDetails == nil {
-		stats.IncrementUdrSubscriptionDataStats("delete", "group-data", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("delete", GroupData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 	} else {
-		stats.IncrementUdrSubscriptionDataStats("delete", "group-data", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("delete", GroupData, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 }
@@ -2254,10 +2315,10 @@ func HandleUpdateEeGroupSubscriptions(request *httpwrapper.Request) *httpwrapper
 	problemDetails := UpdateEeGroupSubscriptionsProcedure(ueGroupId, subsId, EeSubscription)
 
 	if problemDetails == nil {
-		stats.IncrementUdrSubscriptionDataStats("update", "group-data", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("update", GroupData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 	} else {
-		stats.IncrementUdrSubscriptionDataStats("update", "group-data", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("update", GroupData, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 }
@@ -2292,7 +2353,7 @@ func HandleCreateEeGroupSubscriptions(request *httpwrapper.Request) *httpwrapper
 
 	headers := http.Header{}
 	headers.Set("Location", locationHeader)
-	stats.IncrementUdrSubscriptionDataStats("create", "group-data", "SUCCESS")
+	stats.IncrementUdrSubscriptionDataStats("create", GroupData, "SUCCESS")
 	return httpwrapper.NewResponse(http.StatusCreated, headers, EeSubscription)
 }
 
@@ -2329,15 +2390,15 @@ func HandleQueryEeGroupSubscriptions(request *httpwrapper.Request) *httpwrapper.
 	response, problemDetails := QueryEeGroupSubscriptionsProcedure(ueGroupId)
 
 	if response != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "group-data", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("get", GroupData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "group-data", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("get", GroupData, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrSubscriptionDataStats("get", "group-data", "FAILURE")
+	stats.IncrementUdrSubscriptionDataStats("get", GroupData, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -2367,10 +2428,10 @@ func HandleRemoveeeSubscriptions(request *httpwrapper.Request) *httpwrapper.Resp
 	problemDetails := RemoveeeSubscriptionsProcedure(ueId, subsId)
 
 	if problemDetails == nil {
-		stats.IncrementUdrSubscriptionDataStats("delete", "ee-subscriptions", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("delete", EESubscriptions, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 	} else {
-		stats.IncrementUdrSubscriptionDataStats("delete", "ee-subscriptions", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("delete", EESubscriptions, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 }
@@ -2402,10 +2463,10 @@ func HandleUpdateEesubscriptions(request *httpwrapper.Request) *httpwrapper.Resp
 	problemDetails := UpdateEesubscriptionsProcedure(ueId, subsId, EeSubscription)
 
 	if problemDetails == nil {
-		stats.IncrementUdrSubscriptionDataStats("update", "ee-subscriptions", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("update", EESubscriptions, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 	} else {
-		stats.IncrementUdrSubscriptionDataStats("update", "ee-subscriptions", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("update", EESubscriptions, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 }
@@ -2440,7 +2501,7 @@ func HandleCreateEeSubscriptions(request *httpwrapper.Request) *httpwrapper.Resp
 
 	headers := http.Header{}
 	headers.Set("Location", locationHeader)
-	stats.IncrementUdrSubscriptionDataStats("create", "ee-subscriptions", "SUCCESS")
+	stats.IncrementUdrSubscriptionDataStats("create", EESubscriptions, "SUCCESS")
 	return httpwrapper.NewResponse(http.StatusCreated, headers, EeSubscription)
 }
 
@@ -2478,15 +2539,15 @@ func HandleQueryeesubscriptions(request *httpwrapper.Request) *httpwrapper.Respo
 	response, problemDetails := QueryeesubscriptionsProcedure(ueId)
 
 	if response != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "ee-subscriptions", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("get", EESubscriptions, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "ee-subscriptions", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("get", EESubscriptions, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrSubscriptionDataStats("get", "ee-subscriptions", "FAILURE")
+	stats.IncrementUdrSubscriptionDataStats("get", EESubscriptions, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -2517,10 +2578,10 @@ func HandlePatchOperSpecData(request *httpwrapper.Request) *httpwrapper.Response
 	problemDetails := PatchOperSpecDataProcedure(collName, ueId, patchItem)
 
 	if problemDetails == nil {
-		stats.IncrementUdrPolicyDataStats("update", "operator-specific-data", "SUCCESS")
+		stats.IncrementUdrPolicyDataStats("update", OperatorSpecificData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 	} else {
-		stats.IncrementUdrPolicyDataStats("update", "operator-specific-data", "FAILURE")
+		stats.IncrementUdrPolicyDataStats("update", OperatorSpecificData, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 }
@@ -2561,15 +2622,15 @@ func HandleQueryOperSpecData(request *httpwrapper.Request) *httpwrapper.Response
 	response, problemDetails := QueryOperSpecDataProcedure(collName, ueId)
 
 	if response != nil {
-		stats.IncrementUdrPolicyDataStats("get", "operator-specific-data", "SUCCESS")
+		stats.IncrementUdrPolicyDataStats("get", OperatorSpecificData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrPolicyDataStats("get", "operator-specific-data", "FAILURE")
+		stats.IncrementUdrPolicyDataStats("get", OperatorSpecificData, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrPolicyDataStats("get", "operator-specific-data", "FAILURE")
+	stats.IncrementUdrPolicyDataStats("get", OperatorSpecificData, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -2599,15 +2660,15 @@ func HandleGetppData(request *httpwrapper.Request) *httpwrapper.Response {
 	response, problemDetails := GetppDataProcedure(collName, ueId)
 
 	if response != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "pp-data", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("get", PPData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "pp-data", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("get", PPData, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrSubscriptionDataStats("get", "pp-data", "FAILURE")
+	stats.IncrementUdrSubscriptionDataStats("get", PPData, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -2648,119 +2709,92 @@ func HandleQueryProvisionedData(request *httpwrapper.Request) *httpwrapper.Respo
 	response, problemDetails := QueryProvisionedDataProcedure(ueId, servingPlmnId, provisionedDataSets)
 
 	if response != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "provisioned-data", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("get", ProvisionedData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "provisioned-data", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("get", ProvisionedData, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrSubscriptionDataStats("get", "provisioned-data", "FAILURE")
+	stats.IncrementUdrSubscriptionDataStats("get", ProvisionedData, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
-func QueryProvisionedDataProcedure(ueId string, servingPlmnId string,
+func QueryProvisionedDataProcedure(
+	ueId string,
+	servingPlmnId string,
 	provisionedDataSets models.ProvisionedDataSets,
 ) (*models.ProvisionedDataSets, *models.ProblemDetails) {
+	filter := bson.M{"ueId": ueId, "servingPlmnId": servingPlmnId}
 	{
 		collName := "subscriptionData.provisionedData.amData"
-		filter := bson.M{"ueId": ueId, "servingPlmnId": servingPlmnId}
-		accessAndMobilitySubscriptionData, errGetOne := CommonDBClient.RestfulAPIGetOne(collName, filter)
-		if errGetOne != nil {
-			logger.DataRepoLog.Warnln(errGetOne)
+		data, err := CommonDBClient.RestfulAPIGetOne(collName, filter)
+		if err != nil {
+			logger.DataRepoLog.Warnln(err)
 		}
-		if accessAndMobilitySubscriptionData != nil {
-			var tmp models.AccessAndMobilitySubscriptionData
-			err := mapstructure.Decode(accessAndMobilitySubscriptionData, &tmp)
-			if err != nil {
-				panic(err)
-			}
+		var tmp models.AccessAndMobilitySubscriptionData
+		if decodeIfNotNil(data, &tmp) {
 			provisionedDataSets.AmData = &tmp
 		}
 	}
 
 	{
 		collName := "subscriptionData.provisionedData.smfSelectionSubscriptionData"
-		filter := bson.M{"ueId": ueId, "servingPlmnId": servingPlmnId}
-		smfSelectionSubscriptionData, errGetOne := CommonDBClient.RestfulAPIGetOne(collName, filter)
-		if errGetOne != nil {
-			logger.DataRepoLog.Warnln(errGetOne)
+		data, err := CommonDBClient.RestfulAPIGetOne(collName, filter)
+		if err != nil {
+			logger.DataRepoLog.Warnln(err)
 		}
-		if smfSelectionSubscriptionData != nil {
-			var tmp models.SmfSelectionSubscriptionData
-			err := mapstructure.Decode(smfSelectionSubscriptionData, &tmp)
-			if err != nil {
-				panic(err)
-			}
+		var tmp models.SmfSelectionSubscriptionData
+		if decodeIfNotNil(data, &tmp) {
 			provisionedDataSets.SmfSelData = &tmp
 		}
 	}
 
 	{
 		collName := "subscriptionData.provisionedData.smsData"
-		filter := bson.M{"ueId": ueId, "servingPlmnId": servingPlmnId}
-		smsSubscriptionData, errGetOne := CommonDBClient.RestfulAPIGetOne(collName, filter)
-		if errGetOne != nil {
-			logger.DataRepoLog.Warnln(errGetOne)
+		data, err := CommonDBClient.RestfulAPIGetOne(collName, filter)
+		if err != nil {
+			logger.DataRepoLog.Warnln(err)
 		}
-		if smsSubscriptionData != nil {
-			var tmp models.SmsSubscriptionData
-			err := mapstructure.Decode(smsSubscriptionData, &tmp)
-			if err != nil {
-				panic(err)
-			}
+		var tmp models.SmsSubscriptionData
+		if decodeIfNotNil(data, &tmp) {
 			provisionedDataSets.SmsSubsData = &tmp
 		}
 	}
 
 	{
 		collName := "subscriptionData.provisionedData.smData"
-		filter := bson.M{"ueId": ueId, "servingPlmnId": servingPlmnId}
-		sessionManagementSubscriptionDatas, errGetMany := CommonDBClient.RestfulAPIGetMany(collName, filter)
-		if errGetMany != nil {
-			logger.DataRepoLog.Warnln(errGetMany)
+		data, err := CommonDBClient.RestfulAPIGetMany(collName, filter)
+		if err != nil {
+			logger.DataRepoLog.Warnln(err)
 		}
-		if sessionManagementSubscriptionDatas != nil {
-			var tmp []models.SessionManagementSubscriptionData
-			err := mapstructure.Decode(sessionManagementSubscriptionDatas, &tmp)
-			if err != nil {
-				panic(err)
-			}
+		var tmp []models.SessionManagementSubscriptionData
+		if decodeIfNotNil(data, &tmp) {
 			provisionedDataSets.SmData = tmp
 		}
 	}
 
 	{
 		collName := "subscriptionData.provisionedData.traceData"
-		filter := bson.M{"ueId": ueId, "servingPlmnId": servingPlmnId}
-		traceData, errGetOne := CommonDBClient.RestfulAPIGetOne(collName, filter)
-		if errGetOne != nil {
-			logger.DataRepoLog.Warnln(errGetOne)
+		data, err := CommonDBClient.RestfulAPIGetOne(collName, filter)
+		if err != nil {
+			logger.DataRepoLog.Warnln(err)
 		}
-		if traceData != nil {
-			var tmp models.TraceData
-			err := mapstructure.Decode(traceData, &tmp)
-			if err != nil {
-				panic(err)
-			}
+		var tmp models.TraceData
+		if decodeIfNotNil(data, &tmp) {
 			provisionedDataSets.TraceData = &tmp
 		}
 	}
 
 	{
 		collName := "subscriptionData.provisionedData.smsMngData"
-		filter := bson.M{"ueId": ueId, "servingPlmnId": servingPlmnId}
-		smsManagementSubscriptionData, errGetOne := CommonDBClient.RestfulAPIGetOne(collName, filter)
-		if errGetOne != nil {
-			logger.DataRepoLog.Warnln(errGetOne)
+		data, err := CommonDBClient.RestfulAPIGetOne(collName, filter)
+		if err != nil {
+			logger.DataRepoLog.Warnln(err)
 		}
-		if smsManagementSubscriptionData != nil {
-			var tmp models.SmsManagementSubscriptionData
-			err := mapstructure.Decode(smsManagementSubscriptionData, &tmp)
-			if err != nil {
-				panic(err)
-			}
+		var tmp models.SmsManagementSubscriptionData
+		if decodeIfNotNil(data, &tmp) {
 			provisionedDataSets.SmsMngData = &tmp
 		}
 	}
@@ -2772,21 +2806,25 @@ func QueryProvisionedDataProcedure(ueId string, servingPlmnId string,
 	}
 }
 
+func decodeIfNotNil(data interface{}, out interface{}) bool {
+	if data != nil {
+		if err := mapstructure.Decode(data, out); err != nil {
+			panic(err)
+		}
+		return true
+	}
+	return false
+}
+
 func HandleModifyPpData(request *httpwrapper.Request) *httpwrapper.Response {
 	logger.DataRepoLog.Infoln("handle ModifyPpData")
 
-	collName := "subscriptionData.ppData"
-	patchItem := request.Body.([]models.PatchItem)
-	ueId := request.Params["ueId"]
-
-	problemDetails := ModifyPpDataProcedure(collName, ueId, patchItem)
-	if problemDetails == nil {
-		stats.IncrementUdrSubscriptionDataStats("update", "pp-data", "SUCCESS")
-		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
-	} else {
-		stats.IncrementUdrSubscriptionDataStats("update", "pp-data", "FAILURE")
-		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
-	}
+	return handlePatchRequest(
+		request,
+		"subscriptionData.ppData",
+		PPData,
+		ModifyPpDataProcedure,
+	)
 }
 
 func ModifyPpDataProcedure(collName string, ueId string, patchItem []models.PatchItem) *models.ProblemDetails {
@@ -2825,15 +2863,15 @@ func HandleGetIdentityData(request *httpwrapper.Request) *httpwrapper.Response {
 	response, problemDetails := GetIdentityDataProcedure(collName, ueId)
 
 	if response != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "identity-data", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("get", IdentityData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "identity-data", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("get", IdentityData, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrSubscriptionDataStats("get", "identity-data", "FAILURE")
+	stats.IncrementUdrSubscriptionDataStats("get", IdentityData, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -2861,15 +2899,15 @@ func HandleGetOdbData(request *httpwrapper.Request) *httpwrapper.Response {
 	response, problemDetails := GetOdbDataProcedure(collName, ueId)
 
 	if response != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "operator-determined-barring-data", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("get", OperatorDeterminedBarringData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "operator-determined-barring-data", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("get", OperatorDeterminedBarringData, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrSubscriptionDataStats("get", "operator-determined-barring-data", "FAILURE")
+	stats.IncrementUdrSubscriptionDataStats("get", OperatorDeterminedBarringData, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -2903,15 +2941,15 @@ func HandleGetSharedData(request *httpwrapper.Request) *httpwrapper.Response {
 	response, problemDetails := GetSharedDataProcedure(collName, sharedDataIds)
 
 	if response != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "shared-data", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("get", SharedData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "shared-data", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("get", SharedData, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrSubscriptionDataStats("get", "shared-data", "FAILURE")
+	stats.IncrementUdrSubscriptionDataStats("get", SharedData, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -2946,10 +2984,10 @@ func HandleRemovesdmSubscriptions(request *httpwrapper.Request) *httpwrapper.Res
 	problemDetails := RemovesdmSubscriptionsProcedure(ueId, subsId)
 
 	if problemDetails == nil {
-		stats.IncrementUdrSubscriptionDataStats("delete", "sdm-subscriptions", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("delete", SDMSubscriptions, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 	} else {
-		stats.IncrementUdrSubscriptionDataStats("delete", "sdm-subscriptions", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("delete", SDMSubscriptions, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 }
@@ -2982,10 +3020,10 @@ func HandleUpdatesdmsubscriptions(request *httpwrapper.Request) *httpwrapper.Res
 	problemDetails := UpdatesdmsubscriptionsProcedure(ueId, subsId, SdmSubscription)
 
 	if problemDetails == nil {
-		stats.IncrementUdrSubscriptionDataStats("update", "sdm-subscriptions", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("update", SDMSubscriptions, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 	} else {
-		stats.IncrementUdrSubscriptionDataStats("update", "sdm-subscriptions", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("update", SDMSubscriptions, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 }
@@ -3022,7 +3060,7 @@ func HandleCreateSdmSubscriptions(request *httpwrapper.Request) *httpwrapper.Res
 
 	headers := http.Header{}
 	headers.Set("Location", locationHeader)
-	stats.IncrementUdrSubscriptionDataStats("create", "sdm-subscriptions", "SUCCESS")
+	stats.IncrementUdrSubscriptionDataStats("create", SDMSubscriptions, "SUCCESS")
 	return httpwrapper.NewResponse(http.StatusCreated, headers, SdmSubscription)
 }
 
@@ -3062,15 +3100,15 @@ func HandleQuerysdmsubscriptions(request *httpwrapper.Request) *httpwrapper.Resp
 	response, problemDetails := QuerysdmsubscriptionsProcedure(ueId)
 
 	if response != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "sdm-subscriptions", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("get", SDMSubscriptions, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "sdm-subscriptions", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("get", SDMSubscriptions, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrSubscriptionDataStats("get", "sdm-subscriptions", "FAILURE")
+	stats.IncrementUdrSubscriptionDataStats("get", SDMSubscriptions, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -3106,7 +3144,7 @@ func HandleQuerySmData(request *httpwrapper.Request) *httpwrapper.Response {
 
 	dnn := request.Query.Get("dnn")
 	response := QuerySmDataProcedure(collName, ueId, servingPlmnId, singleNssai, dnn)
-	stats.IncrementUdrSubscriptionDataStats("get", "sm-data", "SUCCESS")
+	stats.IncrementUdrSubscriptionDataStats("get", SMData, "SUCCESS")
 	return httpwrapper.NewResponse(http.StatusOK, nil, response)
 }
 
@@ -3125,7 +3163,7 @@ func QuerySmDataProcedure(collName string, ueId string, servingPlmnId string,
 	}
 
 	if dnn != "" {
-		filter["dnnConfigurations."+dnn] = bson.M{"$exists": true}
+		filter["dnnConfigurations."+dnn] = bson.M{MongoOpExists: true}
 	}
 
 	sessionManagementSubscriptionDatas, errGetMany := CommonDBClient.RestfulAPIGetMany(collName, filter)
@@ -3164,15 +3202,15 @@ func HandleCreateSmfContextNon3gpp(request *httpwrapper.Request) *httpwrapper.Re
 
 	switch status {
 	case http.StatusCreated:
-		stats.IncrementUdrSubscriptionDataStats("create", "smf-registrations", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("create", SMFRegistrations, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusCreated, nil, response)
 	case http.StatusOK:
-		stats.IncrementUdrSubscriptionDataStats("create", "smf-registrations", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("create", SMFRegistrations, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrSubscriptionDataStats("create", "smf-registrations", "FAILURE")
+	stats.IncrementUdrSubscriptionDataStats("create", SMFRegistrations, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -3217,7 +3255,7 @@ func HandleDeleteSmfContext(request *httpwrapper.Request) *httpwrapper.Response 
 	pduSessionId := request.Params["pduSessionId"]
 
 	DeleteSmfContextProcedure(collName, ueId, pduSessionId)
-	stats.IncrementUdrSubscriptionDataStats("delete", "smf-registrations", "SUCCESS")
+	stats.IncrementUdrSubscriptionDataStats("delete", SMFRegistrations, "SUCCESS")
 	return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 }
 
@@ -3243,15 +3281,15 @@ func HandleQuerySmfRegistration(request *httpwrapper.Request) *httpwrapper.Respo
 
 	response, problemDetails := QuerySmfRegistrationProcedure(collName, ueId, pduSessionId)
 	if response != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "smf-registrations", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("get", SMFRegistrations, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "smf-registrations", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("get", SMFRegistrations, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrSubscriptionDataStats("get", "smf-registrations", "FAILURE")
+	stats.IncrementUdrSubscriptionDataStats("get", SMFRegistrations, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -3284,7 +3322,7 @@ func HandleQuerySmfRegList(request *httpwrapper.Request) *httpwrapper.Response {
 	ueId := request.Params["ueId"]
 	response := QuerySmfRegListProcedure(collName, ueId)
 
-	stats.IncrementUdrSubscriptionDataStats("get", "smf-registrations", "SUCCESS")
+	stats.IncrementUdrSubscriptionDataStats("get", SMFRegistrations, "SUCCESS")
 	if response == nil {
 		return httpwrapper.NewResponse(http.StatusOK, nil, []map[string]interface{}{})
 	} else {
@@ -3316,10 +3354,10 @@ func HandleQuerySmfSelectData(request *httpwrapper.Request) *httpwrapper.Respons
 	response, problemDetails := QuerySmfSelectDataProcedure(collName, ueId, servingPlmnId)
 
 	if problemDetails == nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "provisioned-data", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("get", ProvisionedData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else {
-		stats.IncrementUdrSubscriptionDataStats("get", "provisioned-data", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("get", ProvisionedData, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 }
@@ -3348,7 +3386,7 @@ func HandleCreateSmsfContext3gpp(request *httpwrapper.Request) *httpwrapper.Resp
 	ueId := request.Params["ueId"]
 
 	CreateSmsfContext3gppProcedure(collName, ueId, SmsfRegistration)
-	stats.IncrementUdrSubscriptionDataStats("create", "smsf-3gpp-access", "SUCCESS")
+	stats.IncrementUdrSubscriptionDataStats("create", SMSF3GPPAccess, "SUCCESS")
 	return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 }
 
@@ -3366,20 +3404,9 @@ func CreateSmsfContext3gppProcedure(collName string, ueId string, SmsfRegistrati
 func HandleDeleteSmsfContext3gpp(request *httpwrapper.Request) *httpwrapper.Response {
 	logger.DataRepoLog.Infoln("handle DeleteSmsfContext3gpp")
 
-	collName := SUBSCDATA_CTXDATA_SMSF_3GPPACCESS
-	ueId := request.Params["ueId"]
-
-	DeleteSmsfContext3gppProcedure(collName, ueId)
-	stats.IncrementUdrSubscriptionDataStats("delete", "smsf-3gpp-access", "SUCCESS")
+	deleteByUeId(SUBSCDATA_CTXDATA_SMSF_3GPPACCESS, request.Params["ueId"])
+	stats.IncrementUdrSubscriptionDataStats("delete", SMSF3GPPAccess, "SUCCESS")
 	return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
-}
-
-func DeleteSmsfContext3gppProcedure(collName string, ueId string) {
-	filter := bson.M{"ueId": ueId}
-	errDelOne := CommonDBClient.RestfulAPIDeleteOne(collName, filter)
-	if errDelOne != nil {
-		logger.DataRepoLog.Warnln(errDelOne)
-	}
 }
 
 func HandleQuerySmsfContext3gpp(request *httpwrapper.Request) *httpwrapper.Response {
@@ -3388,33 +3415,18 @@ func HandleQuerySmsfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 	collName := SUBSCDATA_CTXDATA_SMSF_3GPPACCESS
 	ueId := request.Params["ueId"]
 
-	response, problemDetails := QuerySmsfContext3gppProcedure(collName, ueId)
+	response, problemDetails := QuerySmsfContextCommonProcedure(collName, ueId)
 	if response != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "smsf-3gpp-access", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("get", SMSF3GPPAccess, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "smsf-3gpp-access", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("get", SMSF3GPPAccess, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrSubscriptionDataStats("get", "smsf-3gpp-access", "FAILURE")
+	stats.IncrementUdrSubscriptionDataStats("get", SMSF3GPPAccess, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
-}
-
-func QuerySmsfContext3gppProcedure(collName string, ueId string) (*map[string]interface{}, *models.ProblemDetails) {
-	filter := bson.M{"ueId": ueId}
-
-	smsfRegistration, errGetOne := CommonDBClient.RestfulAPIGetOne(collName, filter)
-	if errGetOne != nil {
-		logger.DataRepoLog.Warnln(errGetOne)
-	}
-
-	if smsfRegistration != nil {
-		return &smsfRegistration, nil
-	} else {
-		return nil, util.ProblemDetailsNotFound("USER_NOT_FOUND")
-	}
 }
 
 func HandleCreateSmsfContextNon3gpp(request *httpwrapper.Request) *httpwrapper.Response {
@@ -3425,7 +3437,7 @@ func HandleCreateSmsfContextNon3gpp(request *httpwrapper.Request) *httpwrapper.R
 	ueId := request.Params["ueId"]
 
 	CreateSmsfContextNon3gppProcedure(SmsfRegistration, collName, ueId)
-	stats.IncrementUdrSubscriptionDataStats("create", "smsf-non-3gpp-access", "SUCCESS")
+	stats.IncrementUdrSubscriptionDataStats("create", SMSFNon3GPPAccess, "SUCCESS")
 	return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 }
 
@@ -3442,20 +3454,16 @@ func CreateSmsfContextNon3gppProcedure(SmsfRegistration models.SmsfRegistration,
 
 func HandleDeleteSmsfContextNon3gpp(request *httpwrapper.Request) *httpwrapper.Response {
 	logger.DataRepoLog.Infoln("handle DeleteSmsfContextNon3gpp")
-
-	collName := SUBSCDATA_CTXDATA_SMSF_NON3GPPACCESS
-	ueId := request.Params["ueId"]
-
-	DeleteSmsfContextNon3gppProcedure(collName, ueId)
-	stats.IncrementUdrSubscriptionDataStats("delete", "smsf-non-3gpp-access", "SUCCESS")
+	// DeleteSmsfContextNon3gppProcedure(collName, ueId)---later handled by using the menioned function
+	deleteByUeId(SUBSCDATA_CTXDATA_SMSF_NON3GPPACCESS, request.Params["ueId"])
+	stats.IncrementUdrSubscriptionDataStats("delete", SMSFNon3GPPAccess, "SUCCESS")
 	return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 }
 
-func DeleteSmsfContextNon3gppProcedure(collName string, ueId string) {
-	filter := bson.M{"ueId": ueId}
-	errDelOne := CommonDBClient.RestfulAPIDeleteOne(collName, filter)
-	if errDelOne != nil {
-		logger.DataRepoLog.Warnln(errDelOne)
+func deleteByUeId(collName string, ueId string) {
+	err := CommonDBClient.RestfulAPIDeleteOne(collName, bson.M{"ueId": ueId})
+	if err != nil {
+		logger.DataRepoLog.Warnln("Delete failed for ueId:", ueId, "error:", err)
 	}
 }
 
@@ -3465,21 +3473,21 @@ func HandleQuerySmsfContextNon3gpp(request *httpwrapper.Request) *httpwrapper.Re
 	ueId := request.Params["ueId"]
 	collName := SUBSCDATA_CTXDATA_SMSF_NON3GPPACCESS
 
-	response, problemDetails := QuerySmsfContextNon3gppProcedure(collName, ueId)
+	response, problemDetails := QuerySmsfContextCommonProcedure(collName, ueId)
 	if response != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "smsf-non-3gpp-access", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("get", SMSFNon3GPPAccess, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "smsf-non-3gpp-access", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("get", SMSFNon3GPPAccess, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrSubscriptionDataStats("get", "smsf-non-3gpp-access", "FAILURE")
+	stats.IncrementUdrSubscriptionDataStats("get", SMSFNon3GPPAccess, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
-func QuerySmsfContextNon3gppProcedure(collName string, ueId string) (*map[string]interface{}, *models.ProblemDetails) {
+func QuerySmsfContextCommonProcedure(collName string, ueId string) (*map[string]interface{}, *models.ProblemDetails) {
 	filter := bson.M{"ueId": ueId}
 
 	smsfRegistration, errGetOne := CommonDBClient.RestfulAPIGetOne(collName, filter)
@@ -3503,15 +3511,15 @@ func HandleQuerySmsMngData(request *httpwrapper.Request) *httpwrapper.Response {
 	response, problemDetails := QuerySmsMngDataProcedure(collName, ueId, servingPlmnId)
 
 	if response != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "sms-mng-data", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("get", SMSManagementData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "sms-mng-data", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("get", SMSManagementData, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrSubscriptionDataStats("get", "sms-mng-data", "FAILURE")
+	stats.IncrementUdrSubscriptionDataStats("get", SMSManagementData, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -3541,15 +3549,15 @@ func HandleQuerySmsData(request *httpwrapper.Request) *httpwrapper.Response {
 	response, problemDetails := QuerySmsDataProcedure(collName, ueId, servingPlmnId)
 
 	if response != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "sms-data", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("get", SMSData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "sms-data", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("get", SMSData, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrSubscriptionDataStats("get", "sms-data", "FAILURE")
+	stats.IncrementUdrSubscriptionDataStats("get", SMSData, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
@@ -3579,7 +3587,7 @@ func HandlePostSubscriptionDataSubscriptions(request *httpwrapper.Request) *http
 
 	headers := http.Header{}
 	headers.Set("Location", locationHeader)
-	stats.IncrementUdrSubscriptionDataStats("create", "subs-to-notify", "SUCCESS")
+	stats.IncrementUdrSubscriptionDataStats("create", SubsToNotify, "SUCCESS")
 	return httpwrapper.NewResponse(http.StatusCreated, headers, SubscriptionDataSubscriptions)
 }
 
@@ -3608,10 +3616,10 @@ func HandleRemovesubscriptionDataSubscriptions(request *httpwrapper.Request) *ht
 	problemDetails := RemovesubscriptionDataSubscriptionsProcedure(subsId)
 
 	if problemDetails == nil {
-		stats.IncrementUdrSubscriptionDataStats("delete", "subs-to-notify", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("delete", SubsToNotify, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusNoContent, nil, map[string]interface{}{})
 	} else {
-		stats.IncrementUdrSubscriptionDataStats("delete", "subs-to-notify", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("delete", SubsToNotify, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 }
@@ -3636,15 +3644,15 @@ func HandleQueryTraceData(request *httpwrapper.Request) *httpwrapper.Response {
 	response, problemDetails := QueryTraceDataProcedure(collName, ueId, servingPlmnId)
 
 	if response != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "trace-data", "SUCCESS")
+		stats.IncrementUdrSubscriptionDataStats("get", TraceData, "SUCCESS")
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else if problemDetails != nil {
-		stats.IncrementUdrSubscriptionDataStats("get", "trace-data", "FAILURE")
+		stats.IncrementUdrSubscriptionDataStats("get", TraceData, "FAILURE")
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrSubscriptionDataStats("get", "trace-data", "FAILURE")
+	stats.IncrementUdrSubscriptionDataStats("get", TraceData, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
