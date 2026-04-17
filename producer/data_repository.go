@@ -243,7 +243,6 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 	logger.DataRepoLog.Infoln("handle CreateAmfContext3gpp")
 
 	Amf3GppAccessRegistration := request.Body.(models.Amf3GppAccessRegistration)
-	logger.DataRepoLog.Infoln("---Amfinstanceid: ", Amf3GppAccessRegistration.AmfInstanceId)
 	ueId := request.Params["ueId"]
 	collName := SUBSCDATA_CTXDATA_AMF_3GPPACCESS
 
@@ -297,7 +296,7 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 		logger.DataRepoLog.Debugln("ueId exist")
 		exists = true
 	} else {
-		logger.DataRepoLog.Debugln("---ueId not exist")
+		logger.DataRepoLog.Debugln("ueId not exist")
 	}
 
 	_, errPutOne := CommonDBClient.RestfulAPIPutOne(collName, filter, putData)
