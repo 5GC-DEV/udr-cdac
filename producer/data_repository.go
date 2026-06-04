@@ -1669,85 +1669,317 @@ func PolicyDataUesUeIdOperatorSpecificDataPutProcedure(collName string, ueId str
 	return errPutOne
 }
 
-func HandlePolicyDataUesUeIdSmDataGet(request *httpwrapper.Request) *httpwrapper.Response {
-	logger.DataRepoLog.Infoln("handle PolicyDataUesUeIdSmDataGet")
+func HandlePolicyDataUesUeIdSmDataGet(
+	request *httpwrapper.Request,
+) *httpwrapper.Response {
+
+	logger.DataRepoLog.Infoln(
+		"handle PolicyDataUesUeIdSmDataGet",
+	)
 
 	collName := "policyData.ues.smData"
+
 	ueId := request.Params["ueId"]
+
 	sNssai := models.Snssai{}
 	sNssaiQuery := request.Query.Get("snssai")
-	err := json.Unmarshal([]byte(sNssaiQuery), &sNssai)
+
+	logger.DataRepoLog.Infof(
+		"Incoming request ueId=%s snssaiQuery=%s dnn=%s",
+		ueId,
+		sNssaiQuery,
+		request.Query.Get("dnn"),
+	)
+
+	err := json.Unmarshal(
+		[]byte(sNssaiQuery),
+		&sNssai,
+	)
+
 	if err != nil {
-		logger.DataRepoLog.Warnln(err)
+		logger.DataRepoLog.Warnf(
+			"Failed to parse S-NSSAI ueId=%s query=%s err=%v",
+			ueId,
+			sNssaiQuery,
+			err,
+		)
+	} else {
+		logger.DataRepoLog.Infof(
+			"Parsed S-NSSAI ueId=%s sst=%d sd=%s",
+			ueId,
+			sNssai.Sst,
+			sNssai.Sd,
+		)
 	}
+
 	dnn := request.Query.Get("dnn")
 
-	response, problemDetails := PolicyDataUesUeIdSmDataGetProcedure(collName, ueId, sNssai, dnn)
+	logger.DataRepoLog.Infof(
+		"Querying SM Data collection=%s ueId=%s snssai=%+v dnn=%s",
+		collName,
+		ueId,
+		sNssai,
+		dnn,
+	)
+
+	response, problemDetails :=
+		PolicyDataUesUeIdSmDataGetProcedure(
+			collName,
+			ueId,
+			sNssai,
+			dnn,
+		)
+
 	if response != nil {
-		stats.IncrementUdrPolicyDataStats("get", SMData, "SUCCESS")
-		return httpwrapper.NewResponse(http.StatusOK, nil, response)
-	} else if problemDetails != nil {
-		stats.IncrementUdrPolicyDataStats("get", SMData, "FAILURE")
-		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
+
+		logger.DataRepoLog.Infof(
+			"SM Data found ueId=%s response=%+v",
+			ueId,
+			response,
+		)
+
+		stats.IncrementUdrPolicyDataStats(
+			"get",
+			SMData,
+			"SUCCESS",
+		)
+
+		return httpwrapper.NewResponse(
+			http.StatusOK,
+			nil,
+			response,
+		)
 	}
+
+	if problemDetails != nil {
+
+		logger.DataRepoLog.Warnf(
+			"SM Data lookup failed ueId=%s problem=%+v",
+			ueId,
+			problemDetails,
+		)
+
+		stats.IncrementUdrPolicyDataStats(
+			"get",
+			SMData,
+			"FAILURE",
+		)
+
+		return httpwrapper.NewResponse(
+			int(problemDetails.Status),
+			nil,
+			problemDetails,
+		)
+	}
+
+	logger.DataRepoLog.Warnf(
+		"SM Data lookup returned nil response and nil problemDetails ueId=%s",
+		ueId,
+	)
 
 	pd := util.ProblemDetailsUnspecified("")
-	stats.IncrementUdrPolicyDataStats("get", SMData, "FAILURE")
-	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
+
+	stats.IncrementUdrPolicyDataStats(
+		"get",
+		SMData,
+		"FAILURE",
+	)
+
+	return httpwrapper.NewResponse(
+		int(pd.Status),
+		nil,
+		pd,
+	)
 }
 
-func PolicyDataUesUeIdSmDataGetProcedure(collName string, ueId string, snssai models.Snssai,
+func PolicyDataUesUeIdSmDataGetProcedure(
+	collName string,
+	ueId string,
+	snssai models.Snssai,
 	dnn string,
 ) (*models.SmPolicyData, *models.ProblemDetails) {
+
 	filter := bson.M{"ueId": ueId}
 
+	logger.DataRepoLog.Infof(
+		"SMData lookup start ueId=%s snssai=%+v dnn=%s",
+		ueId,
+		snssai,
+		dnn,
+	)
+
 	if !reflect.DeepEqual(snssai, models.Snssai{}) {
-		filter["smPolicySnssaiData."+util.SnssaiModelsToHex(snssai)] = bson.M{MongoOpExists: true}
-	}
-	if !reflect.DeepEqual(snssai, models.Snssai{}) && dnn != "" {
-		filter["smPolicySnssaiData."+util.SnssaiModelsToHex(snssai)+".smPolicyDnnData."+dnn] = bson.M{MongoOpExists: true}
+		snssaiHex := util.SnssaiModelsToHex(snssai)
+
+		logger.DataRepoLog.Infof(
+			"Adding S-NSSAI filter hex=%s",
+			snssaiHex,
+		)
+
+		filter["smPolicySnssaiData."+snssaiHex] =
+			bson.M{MongoOpExists: true}
 	}
 
-	smPolicyData, errGetOne := CommonDBClient.RestfulAPIGetOne(collName, filter)
+	if !reflect.DeepEqual(snssai, models.Snssai{}) &&
+		dnn != "" {
+
+		snssaiHex := util.SnssaiModelsToHex(snssai)
+
+		logger.DataRepoLog.Infof(
+			"Adding DNN filter snssaiHex=%s dnn=%s",
+			snssaiHex,
+			dnn,
+		)
+
+		filter["smPolicySnssaiData."+
+			snssaiHex+
+			".smPolicyDnnData."+
+			dnn] = bson.M{MongoOpExists: true}
+	}
+
+	logger.DataRepoLog.Infof(
+		"Mongo filter generated: %+v",
+		filter,
+	)
+
+	smPolicyData, errGetOne :=
+		CommonDBClient.RestfulAPIGetOne(
+			collName,
+			filter,
+		)
+
 	if errGetOne != nil {
-		logger.DataRepoLog.Warnln(errGetOne)
+		logger.DataRepoLog.Errorf(
+			"Mongo query failed ueId=%s err=%v",
+			ueId,
+			errGetOne,
+		)
 	}
+
 	if smPolicyData != nil {
-		return SmDataGetProcedureSmPolicyDataResponse(ueId, smPolicyData)
-	} else {
-		return nil, util.ProblemDetailsNotFound("USER_NOT_FOUND")
+
+		logger.DataRepoLog.Infof(
+			"Mongo returned policy data ueId=%s data=%+v",
+			ueId,
+			smPolicyData,
+		)
+
+		return SmDataGetProcedureSmPolicyDataResponse(
+			ueId,
+			smPolicyData,
+		)
 	}
+
+	logger.DataRepoLog.Warnf(
+		"No SM policy data found ueId=%s filter=%+v",
+		ueId,
+		filter,
+	)
+
+	return nil,
+		util.ProblemDetailsNotFound(
+			"USER_NOT_FOUND",
+		)
 }
 
 func SmDataGetProcedureSmPolicyDataResponse(
 	ueId string,
 	smPolicyData map[string]interface{},
 ) (*models.SmPolicyData, *models.ProblemDetails) {
+
 	var smPolicyDataResp models.SmPolicyData
-	err := json.Unmarshal(util.MapToByte(smPolicyData), &smPolicyDataResp)
+
+	logger.DataRepoLog.Infof(
+		"Converting SM policy response UE=%s",
+		ueId,
+	)
+
+	err := json.Unmarshal(
+		util.MapToByte(smPolicyData),
+		&smPolicyDataResp,
+	)
+
 	if err != nil {
-		logger.DataRepoLog.Warnln(err)
+		logger.DataRepoLog.Errorf(
+			"SM policy unmarshal failed ueId=%s err=%v",
+			ueId,
+			err,
+		)
 	}
-	{
-		collName := POLICYDATA_UES_SMDATA_USAGEMONDATA
-		filter := bson.M{"ueId": ueId}
-		usageMonDataMapArray, errGetMany := CommonDBClient.RestfulAPIGetMany(collName, filter)
-		if errGetMany != nil {
-			logger.DataRepoLog.Warnln(errGetMany)
+
+	logger.DataRepoLog.Infof(
+		"Decoded policy data UE=%s smPolicySnssaiCount=%d",
+		ueId,
+		len(smPolicyDataResp.SmPolicySnssaiData),
+	)
+
+	collName := POLICYDATA_UES_SMDATA_USAGEMONDATA
+
+	filter := bson.M{
+		"ueId": ueId,
+	}
+
+	logger.DataRepoLog.Infof(
+		"Fetching usage monitoring data filter=%+v",
+		filter,
+	)
+
+	usageMonDataMapArray,
+		errGetMany :=
+		CommonDBClient.RestfulAPIGetMany(
+			collName,
+			filter,
+		)
+
+	if errGetMany != nil {
+		logger.DataRepoLog.Errorf(
+			"Usage monitoring lookup failed ueId=%s err=%v",
+			ueId,
+			errGetMany,
+		)
+	}
+
+	logger.DataRepoLog.Infof(
+		"UsageMon entries count=%d",
+		len(usageMonDataMapArray),
+	)
+
+	if !reflect.DeepEqual(
+		usageMonDataMapArray,
+		[]map[string]interface{}{},
+	) {
+
+		var usageMonDataArray []models.UsageMonData
+
+		err = json.Unmarshal(
+			util.MapArrayToByte(
+				usageMonDataMapArray,
+			),
+			&usageMonDataArray,
+		)
+
+		if err != nil {
+			logger.DataRepoLog.Errorf(
+				"UsageMon unmarshal failed ueId=%s err=%v",
+				ueId,
+				err,
+			)
 		}
 
-		if !reflect.DeepEqual(usageMonDataMapArray, []map[string]interface{}{}) {
-			var usageMonDataArray []models.UsageMonData
-			err = json.Unmarshal(util.MapArrayToByte(usageMonDataMapArray), &usageMonDataArray)
-			if err != nil {
-				logger.DataRepoLog.Warnln(err)
-			}
-			smPolicyDataResp.UmData = make(map[string]models.UsageMonData)
-			for _, element := range usageMonDataArray {
-				smPolicyDataResp.UmData[element.LimitId] = element
-			}
+		smPolicyDataResp.UmData =
+			make(map[string]models.UsageMonData)
+
+		for _, element := range usageMonDataArray {
+
+			logger.DataRepoLog.Infof(
+				"Adding UsageMonData limitId=%s",
+				element.LimitId,
+			)
+
+			smPolicyDataResp.UmData[element.LimitId] = element
 		}
 	}
+
 	return &smPolicyDataResp, nil
 }
 
