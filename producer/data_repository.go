@@ -533,7 +533,7 @@ func ModifyAuthenticationProcedure(collName string, ueId string, patchItem []mod
 	}
 }
 
-func HandleQueryAuthSubsData(request *httpwrapper.Request) *httpwrapper.Response {
+/*func HandleQueryAuthSubsData(request *httpwrapper.Request) *httpwrapper.Response {
 	logger.DataRepoLog.Infoln("handle QueryAuthSubsData")
 
 	collName := "subscriptionData.authenticationData.authenticationSubscription"
@@ -552,9 +552,40 @@ func HandleQueryAuthSubsData(request *httpwrapper.Request) *httpwrapper.Response
 	pd := util.ProblemDetailsUnspecified("")
 	stats.IncrementUdrSubscriptionDataStats("update", AuthenticationSubscription, "FAILURE")
 	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
+}*/
+
+func HandleQueryAuthSubsData(request *httpwrapper.Request) *httpwrapper.Response {
+	logger.DataRepoLog.Infoln("handle QueryAuthSubsData")
+
+	collName := "subscriptionData.authenticationData.authenticationSubscription"
+	ueId := request.Params["ueId"]
+
+	logger.DataRepoLog.Infof("[AuthSubsData] Received request for ueId: %s", ueId)
+	logger.DataRepoLog.Infof("[AuthSubsData] Collection: %s", collName)
+
+	response, problemDetails := QueryAuthSubsDataProcedure(collName, ueId)
+
+	if response != nil {
+		logger.DataRepoLog.Infof("[AuthSubsData] Authentication subscription found for ueId: %s", ueId)
+
+		stats.IncrementUdrSubscriptionDataStats("get", AuthenticationSubscription, "SUCCESS")
+		return httpwrapper.NewResponse(http.StatusOK, nil, response)
+	} else if problemDetails != nil {
+		logger.DataRepoLog.Warnf("[AuthSubsData] Authentication subscription not found for ueId: %s, problemDetails: %+v",
+			ueId, problemDetails)
+
+		stats.IncrementUdrSubscriptionDataStats("get", AuthenticationSubscription, "FAILURE")
+		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
+	}
+
+	logger.DataRepoLog.Errorf("[AuthSubsData] Unexpected nil response and nil problemDetails for ueId: %s", ueId)
+
+	pd := util.ProblemDetailsUnspecified("")
+	stats.IncrementUdrSubscriptionDataStats("update", AuthenticationSubscription, "FAILURE")
+	return httpwrapper.NewResponse(int(pd.Status), nil, pd)
 }
 
-func QueryAuthSubsDataProcedure(collName string, ueId string) (map[string]interface{}, *models.ProblemDetails) {
+/*func QueryAuthSubsDataProcedure(collName string, ueId string) (map[string]interface{}, *models.ProblemDetails) {
 	filter := bson.M{"ueId": ueId}
 
 	authenticationSubscription, errGetOne := AuthDBClient.RestfulAPIGetOne(collName, filter)
@@ -567,6 +598,46 @@ func QueryAuthSubsDataProcedure(collName string, ueId string) (map[string]interf
 	} else {
 		return nil, util.ProblemDetailsNotFound("USER_NOT_FOUND")
 	}
+}*/
+
+func QueryAuthSubsDataProcedure(collName string, ueId string) (map[string]interface{}, *models.ProblemDetails) {
+
+	filter := bson.M{"ueId": ueId}
+
+	logger.DataRepoLog.Infof("[AuthSubsData] Querying MongoDB")
+	logger.DataRepoLog.Infof("[AuthSubsData] Collection: %s", collName)
+	logger.DataRepoLog.Infof("[AuthSubsData] Filter: %+v", filter)
+
+	authenticationSubscription, errGetOne := AuthDBClient.RestfulAPIGetOne(collName, filter)
+
+	if errGetOne != nil {
+		logger.DataRepoLog.Errorf(
+			"[AuthSubsData] MongoDB query failed for ueId=%s, error=%v",
+			ueId, errGetOne,
+		)
+	} else {
+		logger.DataRepoLog.Infof(
+			"[AuthSubsData] MongoDB query completed successfully for ueId=%s",
+			ueId,
+		)
+	}
+
+	if authenticationSubscription != nil {
+		logger.DataRepoLog.Infof(
+			"[AuthSubsData] Document found for ueId=%s: %+v",
+			ueId,
+			authenticationSubscription,
+		)
+		return authenticationSubscription, nil
+	}
+
+	logger.DataRepoLog.Warnf(
+		"[AuthSubsData] No document found for ueId=%s in collection=%s",
+		ueId,
+		collName,
+	)
+
+	return nil, util.ProblemDetailsNotFound("USER_NOT_FOUND")
 }
 
 func HandleCreateAuthenticationSoR(request *httpwrapper.Request) *httpwrapper.Response {
