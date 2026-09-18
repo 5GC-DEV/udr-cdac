@@ -17,6 +17,7 @@ package datarepository
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omec-project/udr/logger"
@@ -62,6 +63,7 @@ type Routes []Route
 // NewRouter returns a new router.
 func NewRouter() *gin.Engine {
 	router := utilLogger.NewGinWithZap(logger.GinLog)
+	router.Use(RequestTimestampLogger())
 	AddService(router)
 	return router
 }
@@ -213,6 +215,25 @@ func AddService(engine *gin.Engine) *gin.RouterGroup {
 	group.Any(expoPattern, expoMsgDispatchHandlerFunc)
 
 	return group
+}
+
+func RequestTimestampLogger() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		c.Next() // let it dispatch first if you want status code too, or log before — your call
+
+		logger.DataRepoLog.Infof(
+			"[SBI] route=%s method=%s ueId=%s servingPlmnId=%s from=%s status=%d at=%s",
+			c.FullPath(),
+			c.Request.Method,
+			c.Param("ueId"),
+			c.Param("servingPlmnId"),
+			c.ClientIP(),
+			c.Writer.Status(),
+			start.Format(time.RFC3339Nano),
+		)
+
+	}
 }
 
 // Index is the index handler.
