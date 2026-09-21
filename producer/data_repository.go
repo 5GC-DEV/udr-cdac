@@ -207,11 +207,14 @@ func HandleQueryAmData(request *httpwrapper.Request) *httpwrapper.Response {
 	collName := "subscriptionData.provisionedData.amData"
 	ueId := request.Params["ueId"]
 	servingPlmnId := request.Params["servingPlmnId"]
+	logger.DataRepoLog.Infof("[Queryamdata] request recieved for ueId: %s", ueId)
 	response, problemDetails := QueryAmDataProcedure(collName, ueId, servingPlmnId)
 
 	if problemDetails == nil {
+		logger.DataRepoLog.Infof("[Queryamdata] amdata found for ueId: %s", ueId)
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else {
+		logger.DataRepoLog.Infof("[Queryamdata] amdata not found for ueId: %s", ueId)
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 }
@@ -225,8 +228,10 @@ func QueryAmDataProcedure(collName string, ueId string, servingPlmnId string) (*
 		logger.DataRepoLog.Warnln(errGetOne)
 	}
 	if accessAndMobilitySubscriptionData != nil {
+		logger.DataRepoLog.Infof("mongodb query completed successfully for ueId: %s", ueId)
 		return &accessAndMobilitySubscriptionData, nil
 	} else {
+		logger.DataRepoLog.Infof("mongodb query failed for ueId: %s", ueId)
 		return nil, util.ProblemDetailsNotFound("USER_NOT_FOUND")
 	}
 }
@@ -292,7 +297,7 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 	Amf3GppAccessRegistration := request.Body.(models.Amf3GppAccessRegistration)
 	ueId := request.Params["ueId"]
 	collName := SUBSCDATA_CTXDATA_AMF_3GPPACCESS
-
+	logger.DataRepoLog.Infof("[amf3gppcontext]Request recieved for ueId: %s", ueId)
 	problemDetails, exists, createdResource, err := CreateAmfContext3gppProcedure(collName, ueId, Amf3GppAccessRegistration)
 	if err != nil {
 		stats.IncrementUdrSubscriptionDataStats("create", AccessTypeAMF3GPP, "FAILURE")
@@ -305,6 +310,7 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 	location := fmt.Sprintf("/nudr-dr/v2/subscription-data/%s/context-data/amf-3gpp-access", ueId)
 	headers.Set("Location", location)
 	stats.IncrementUdrSubscriptionDataStats("create", AccessTypeAMF3GPP, "SUCCESS")
+	logger.DataRepoLog.Infof("[amf3gppcontext] context created for ueId: %s", ueId)
 	return httpwrapper.NewResponse(http.StatusCreated, headers, createdResource)
 }
 
@@ -320,9 +326,9 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 		logger.DataRepoLog.Warnln(errGetOne)
 	}
 	if data != nil {
-		logger.DataRepoLog.Debugln("ueId found from mongodb")
+		logger.DataRepoLog.Infoln("ueId found from mongodb")
 	} else {
-		logger.DataRepoLog.Debugln("ueId not found from mongodb")
+		logger.DataRepoLog.Infoln("ueId not found from mongodb")
 		return util.ProblemDetailsNotFound("SUBSCRIPTION_NOT_FOUND"), false, models.Amf3GppAccessRegistration{}, errors.New("no required subscription data")
 	}
 
@@ -335,7 +341,7 @@ func CreateAmfContext3gppProcedure(collName string, ueId string,
 		logger.DataRepoLog.Warnln(errGet)
 	}
 	if data != nil {
-		logger.DataRepoLog.Debugln("ueId exist")
+		logger.DataRepoLog.Infoln("ueId exist")
 		exists = true
 	}
 
@@ -705,10 +711,12 @@ func QueryAuthSoRProcedure(collName string, ueId string) (map[string]interface{}
 
 // This function now builds a 201 Created response.
 func HandleCreateAuthenticationStatus(request *httpwrapper.Request) *httpwrapper.Response {
+	logger.DataRepoLog.Infoln("handle CreateAuthenticationStatus")
 	// The request body is now asserted as the AuthEvent model.
 	authEvent := request.Body.(models.AuthEvent)
 	ueId := request.Params["ueId"]
 	collName := SUBSCDATA_AUTHDATA_AUTHSTATUS
+	logger.DataRepoLog.Infof("[AuthenticationStatus] Received request for ueId: %s", ueId)
 	// The procedure call now returns the created event object and an error.
 	createdEvent, err := CreateAuthenticationStatusProcedure(collName, ueId, authEvent)
 	if err != nil {
@@ -720,6 +728,7 @@ func HandleCreateAuthenticationStatus(request *httpwrapper.Request) *httpwrapper
 			Detail: err.Error(),
 			Cause:  "DATABASE_ERROR",
 		}
+		logger.DataRepoLog.Infof("[AuthenticationStatus] creation failed for ueId: %s", ueId)
 		return httpwrapper.NewResponse(http.StatusInternalServerError, nil, problemDetails)
 	}
 
@@ -731,6 +740,7 @@ func HandleCreateAuthenticationStatus(request *httpwrapper.Request) *httpwrapper
 	headers := http.Header{}
 	headers.Set("Location", locationURI)
 	// Return a 201 Created response with the header and the createdEvent object in the body.
+	logger.DataRepoLog.Infof("[AuthenticationStatus] created for ueId: %s", ueId)
 	return httpwrapper.NewResponse(http.StatusCreated, headers, createdEvent)
 }
 
@@ -745,6 +755,8 @@ func CreateAuthenticationStatusProcedure(collName string, ueId string, authEvent
 	_, errPutOne := CommonDBClient.RestfulAPIPutOne(collName, filter, putData)
 	if errPutOne != nil {
 		logger.DataRepoLog.Errorf("Error writing AuthEvent to DB: %+v", errPutOne)
+	} else {
+		logger.DataRepoLog.Infof("Writing AuthEvent to DB success for ueId: %s", ueId)
 	}
 	// Return the modified authEvent (which now includes the ID) and any error.
 	return authEvent, errPutOne
@@ -1596,7 +1608,7 @@ func HandlePolicyDataUesUeIdAmDataGet(request *httpwrapper.Request) *httpwrapper
 
 	collName := "policyData.ues.amData"
 	ueId := request.Params["ueId"]
-
+	logger.DataRepoLog.Infof("[policyamdata] request received for ueId: %s", ueId)
 	response, problemDetails := PolicyDataUesUeIdAmDataGetProcedure(collName, ueId)
 
 	if response != nil {
@@ -1623,6 +1635,7 @@ func PolicyDataUesUeIdAmDataGetProcedure(collName string,
 	}
 
 	if amPolicyData != nil {
+		logger.DataRepoLog.Infof("[policyamdata] query success for ueId: %s", ueId)
 		return &amPolicyData, nil
 	} else {
 		return nil, util.ProblemDetailsNotFound("USER_NOT_FOUND")
@@ -3358,7 +3371,7 @@ func HandleCreateSdmSubscriptions(request *httpwrapper.Request) *httpwrapper.Res
 	SdmSubscription := request.Body.(models.SdmSubscription)
 	collName := SUBSCDATA_CTXDATA_AMF_NON3GPPACCESS
 	ueId := request.Params["ueId"]
-
+	logger.DataRepoLog.Infof("[sdmsubscription] request received for ueId: %s", ueId)
 	locationHeader, SdmSubscription := CreateSdmSubscriptionsProcedure(SdmSubscription, collName, ueId)
 
 	headers := http.Header{}
@@ -3635,6 +3648,7 @@ func HandleQuerySmfRegList(request *httpwrapper.Request) *httpwrapper.Response {
 
 	collName := SUBSCDATA_CTXDATA_SMF_REGISTRATION
 	ueId := request.Params["ueId"]
+	logger.DataRepoLog.Infof("[smfreglist] request received for ueId: %s", ueId)
 	response := QuerySmfRegListProcedure(collName, ueId)
 
 	stats.IncrementUdrSubscriptionDataStats("get", SMFRegistrations, "SUCCESS")
@@ -3653,6 +3667,7 @@ func QuerySmfRegListProcedure(collName string, ueId string) *[]map[string]interf
 	}
 
 	if smfRegList != nil {
+		logger.DataRepoLog.Infof("[smfreglist] mongodb query success for ueId: %s", ueId)
 		return &smfRegList
 	} else {
 		// Return empty array instead
@@ -3666,13 +3681,16 @@ func HandleQuerySmfSelectData(request *httpwrapper.Request) *httpwrapper.Respons
 	collName := "subscriptionData.provisionedData.smfSelectionSubscriptionData"
 	ueId := request.Params["ueId"]
 	servingPlmnId := request.Params["servingPlmnId"]
+	logger.DataRepoLog.Infof("[smfselectdata] request received for ueid: %s", ueId)
 	response, problemDetails := QuerySmfSelectDataProcedure(collName, ueId, servingPlmnId)
 
 	if problemDetails == nil {
 		stats.IncrementUdrSubscriptionDataStats("get", ProvisionedData, "SUCCESS")
+		logger.DataRepoLog.Infof("[smfselectdata] found for ueid: %s", ueId)
 		return httpwrapper.NewResponse(http.StatusOK, nil, response)
 	} else {
 		stats.IncrementUdrSubscriptionDataStats("get", ProvisionedData, "FAILURE")
+		logger.DataRepoLog.Infof("[smfselectdata] not found for ueid: %s", ueId)
 		return httpwrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
 }
@@ -3687,8 +3705,10 @@ func QuerySmfSelectDataProcedure(collName string, ueId string,
 	}
 
 	if smfSelectionSubscriptionData != nil {
+		logger.DataRepoLog.Infof("[smfselectdata] query completed successfully for ueid: %s", ueId)
 		return &smfSelectionSubscriptionData, nil
 	} else {
+		logger.DataRepoLog.Infof("[smfselectdata] query failed for ueid: %s", ueId)
 		return nil, util.ProblemDetailsNotFound("USER_NOT_FOUND")
 	}
 }
