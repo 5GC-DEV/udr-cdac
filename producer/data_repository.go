@@ -1802,7 +1802,6 @@ func HandlePolicyDataUesUeIdSmDataGet(
 		sNssai,
 		dnn,
 	)
-
 	response, problemDetails :=
 		PolicyDataUesUeIdSmDataGetProcedure(
 			collName,
@@ -1877,7 +1876,6 @@ func PolicyDataUesUeIdSmDataGetProcedure(
 	snssai models.Snssai,
 	dnn string,
 ) (*models.SmPolicyData, *models.ProblemDetails) {
-
 	filter := bson.M{"ueId": ueId}
 
 	logger.DataRepoLog.Infof(
@@ -1901,7 +1899,6 @@ func PolicyDataUesUeIdSmDataGetProcedure(
 
 	if !reflect.DeepEqual(snssai, models.Snssai{}) &&
 		dnn != "" {
-
 		snssaiHex := util.SnssaiModelsToHex(snssai)
 
 		logger.DataRepoLog.Infof(
@@ -1936,7 +1933,6 @@ func PolicyDataUesUeIdSmDataGetProcedure(
 	}
 
 	if smPolicyData != nil {
-
 		logger.DataRepoLog.Infof(
 			"Mongo returned policy data ueId=%s data=%+v",
 			ueId,
