@@ -207,7 +207,7 @@ func HandleQueryAmData(request *httpwrapper.Request) *httpwrapper.Response {
 	collName := "subscriptionData.provisionedData.amData"
 	ueId := request.Params["ueId"]
 	servingPlmnId := request.Params["servingPlmnId"]
-	logger.DataRepoLog.Infof("[Queryamdata] request recieved for ueId: %s", ueId)
+	logger.DataRepoLog.Infof("[Queryamdata] request received for ueId: %s", ueId)
 	response, problemDetails := QueryAmDataProcedure(collName, ueId, servingPlmnId)
 
 	if problemDetails == nil {
@@ -297,7 +297,7 @@ func HandleCreateAmfContext3gpp(request *httpwrapper.Request) *httpwrapper.Respo
 	Amf3GppAccessRegistration := request.Body.(models.Amf3GppAccessRegistration)
 	ueId := request.Params["ueId"]
 	collName := SUBSCDATA_CTXDATA_AMF_3GPPACCESS
-	logger.DataRepoLog.Infof("[amf3gppcontext]Request recieved for ueId: %s", ueId)
+	logger.DataRepoLog.Infof("[amf3gppcontext]Request received for ueId: %s", ueId)
 	problemDetails, exists, createdResource, err := CreateAmfContext3gppProcedure(collName, ueId, Amf3GppAccessRegistration)
 	if err != nil {
 		stats.IncrementUdrSubscriptionDataStats("create", AccessTypeAMF3GPP, "FAILURE")
@@ -607,9 +607,7 @@ func HandleQueryAuthSubsData(request *httpwrapper.Request) *httpwrapper.Response
 }*/
 
 func QueryAuthSubsDataProcedure(collName string, ueId string) (map[string]interface{}, *models.ProblemDetails) {
-
 	filter := bson.M{"ueId": ueId}
-
 	logger.DataRepoLog.Infof("[AuthSubsData] Querying MongoDB")
 	logger.DataRepoLog.Infof("[AuthSubsData] Collection: %s", collName)
 	logger.DataRepoLog.Infof("[AuthSubsData] Filter: %+v", filter)
@@ -1756,7 +1754,6 @@ func PolicyDataUesUeIdOperatorSpecificDataPutProcedure(collName string, ueId str
 func HandlePolicyDataUesUeIdSmDataGet(
 	request *httpwrapper.Request,
 ) *httpwrapper.Response {
-
 	logger.DataRepoLog.Infoln(
 		"handle PolicyDataUesUeIdSmDataGet",
 	)
@@ -1815,7 +1812,6 @@ func HandlePolicyDataUesUeIdSmDataGet(
 		)
 
 	if response != nil {
-
 		logger.DataRepoLog.Infof(
 			"SM Data found ueId=%s response=%+v",
 			ueId,
@@ -1836,7 +1832,6 @@ func HandlePolicyDataUesUeIdSmDataGet(
 	}
 
 	if problemDetails != nil {
-
 		logger.DataRepoLog.Warnf(
 			"SM Data lookup failed ueId=%s problem=%+v",
 			ueId,
