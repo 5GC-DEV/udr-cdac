@@ -232,7 +232,6 @@ func RequestTimestampLogger() gin.HandlerFunc {
 			c.Writer.Status(),
 			start.Format(time.RFC3339Nano),
 		)
-
 	}
 }
 

@@ -1802,13 +1802,12 @@ func HandlePolicyDataUesUeIdSmDataGet(
 		sNssai,
 		dnn,
 	)
-	response, problemDetails :=
-		PolicyDataUesUeIdSmDataGetProcedure(
-			collName,
-			ueId,
-			sNssai,
-			dnn,
-		)
+	response, problemDetails := PolicyDataUesUeIdSmDataGetProcedure(
+		collName,
+		ueId,
+		sNssai,
+		dnn,
+	)
 
 	if response != nil {
 		logger.DataRepoLog.Infof(
@@ -1961,7 +1960,6 @@ func SmDataGetProcedureSmPolicyDataResponse(
 	ueId string,
 	smPolicyData map[string]interface{},
 ) (*models.SmPolicyData, *models.ProblemDetails) {
-
 	var smPolicyDataResp models.SmPolicyData
 
 	logger.DataRepoLog.Infof(
@@ -2023,7 +2021,6 @@ func SmDataGetProcedureSmPolicyDataResponse(
 		usageMonDataMapArray,
 		[]map[string]interface{}{},
 	) {
-
 		var usageMonDataArray []models.UsageMonData
 
 		err = json.Unmarshal(
@@ -2045,7 +2042,6 @@ func SmDataGetProcedureSmPolicyDataResponse(
 			make(map[string]models.UsageMonData)
 
 		for _, element := range usageMonDataArray {
-
 			logger.DataRepoLog.Infof(
 				"Adding UsageMonData limitId=%s",
 				element.LimitId,
