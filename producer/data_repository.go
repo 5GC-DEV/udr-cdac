@@ -1914,11 +1914,10 @@ func PolicyDataUesUeIdSmDataGetProcedure(
 		filter,
 	)
 
-	smPolicyData, errGetOne :=
-		CommonDBClient.RestfulAPIGetOne(
-			collName,
-			filter,
-		)
+	smPolicyData, errGetOne := CommonDBClient.RestfulAPIGetOne(
+		collName,
+		filter,
+	)
 
 	if errGetOne != nil {
 		logger.DataRepoLog.Errorf(
