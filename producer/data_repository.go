@@ -1886,14 +1886,11 @@ func PolicyDataUesUeIdSmDataGetProcedure(
 
 	if !reflect.DeepEqual(snssai, models.Snssai{}) {
 		snssaiHex := util.SnssaiModelsToHex(snssai)
-
 		logger.DataRepoLog.Infof(
 			"Adding S-NSSAI filter hex=%s",
 			snssaiHex,
 		)
-
-		filter["smPolicySnssaiData."+snssaiHex] =
-			bson.M{MongoOpExists: true}
+		filter["smPolicySnssaiData."+snssaiHex] = bson.M{MongoOpExists: true}
 	}
 
 	if !reflect.DeepEqual(snssai, models.Snssai{}) &&
