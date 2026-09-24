@@ -8,8 +8,9 @@ package context
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 
-	"github.com/5GC-DEV/openapi-cdac/models"
+	"github.com/5GC-DEV/openapi-cdac/v2/models"
 )
 
 var udrContext = UDRContext{}
@@ -24,8 +25,7 @@ const (
 
 func init() {
 	UDR_Self().Name = "udr"
-	UDR_Self().EeSubscriptionIDGenerator = 1
-	UDR_Self().SdmSubscriptionIDGenerator = 1
+	UDR_Self().EeSubscriptionIDGenerator.Store(0)
 	UDR_Self().SubscriptionDataSubscriptionIDGenerator = 1
 	UDR_Self().PolicyDataSubscriptionIDGenerator = 1
 	UDR_Self().SubscriptionDataSubscriptions = make(map[subsId]*models.SubscriptionDataSubscriptions)
@@ -48,20 +48,34 @@ type UDRContext struct {
 	UEGroupCollection                       sync.Map // map[ueGroupId]*UEGroupSubsData
 	mtx                                     sync.RWMutex
 	SBIPort                                 int
-	EeSubscriptionIDGenerator               int
-	SdmSubscriptionIDGenerator              int
+	EeSubscriptionIDGenerator               atomic.Int64
+	SdmSubscriptionIDGenerator              atomic.Int64
 	PolicyDataSubscriptionIDGenerator       int
 	SubscriptionDataSubscriptionIDGenerator int
 	appDataInfluDataSubscriptionIdGenerator uint64
 }
 
+// UESubsData holds the per-UE subscription maps.
+//
+// Mtx guards both maps. The UDM creates an SDM subscription per registration,
+// one goroutine per in-flight registration, so unsynchronised access aborts the
+// process with "concurrent map writes"; the EE subscription paths are reached
+// from their own handlers and are no different.
+//
+// Read paths must hold RLock across the map lookup *and* the use of the value
+// pointer, not just the lookup: the entry can otherwise be replaced while the
+// caller is dereferencing it.
 type UESubsData struct {
 	EeSubscriptionCollection map[subsId]*EeSubscriptionCollection
 	SdmSubscriptions         map[subsId]*models.SdmSubscription
+	Mtx                      sync.RWMutex
 }
 
+// Mtx guards EeSubscriptions. Keyed by group rather than by UE, so it needs its
+// own lock rather than borrowing the per-UE one.
 type UEGroupSubsData struct {
 	EeSubscriptions map[subsId]*models.EeSubscription
+	Mtx             sync.RWMutex
 }
 
 type EeSubscriptionCollection struct {
@@ -69,40 +83,12 @@ type EeSubscriptionCollection struct {
 	AmfSubscriptionInfos []models.AmfSubscriptionInfo
 }
 
-// Reset UDR Context
-func (context *UDRContext) Reset() {
-	context.UESubsCollection.Range(func(key, value interface{}) bool {
-		context.UESubsCollection.Delete(key)
-		return true
-	})
-	context.UEGroupCollection.Range(func(key, value interface{}) bool {
-		context.UEGroupCollection.Delete(key)
-		return true
-	})
-	for key := range context.SubscriptionDataSubscriptions {
-		delete(context.SubscriptionDataSubscriptions, key)
-	}
-	for key := range context.PolicyDataSubscriptions {
-		delete(context.PolicyDataSubscriptions, key)
-	}
-	context.EeSubscriptionIDGenerator = 1
-	context.SdmSubscriptionIDGenerator = 1
-	context.SubscriptionDataSubscriptionIDGenerator = 1
-	context.PolicyDataSubscriptionIDGenerator = 1
-	context.UriScheme = models.UriScheme_HTTPS
-	context.Name = "udr"
-}
-
-func (context *UDRContext) GetIPv4Uri() string {
-	return fmt.Sprintf("%s://%s:%d", context.UriScheme, context.RegisterIPv4, context.SBIPort)
-}
-
 func (context *UDRContext) GetIPv4GroupUri(udrServiceType UDRServiceType) string {
 	var serviceUri string
 
 	switch udrServiceType {
 	case NUDR_DR:
-		serviceUri = "/nudr-dr/v1"
+		serviceUri = "/nudr-dr/v2"
 	default:
 		serviceUri = ""
 	}

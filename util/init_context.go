@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/5GC-DEV/openapi-cdac/models"
+	"github.com/5GC-DEV/openapi-cdac/v2/models"
 	"github.com/google/uuid"
 	"github.com/omec-project/udr/context"
 	"github.com/omec-project/udr/factory"

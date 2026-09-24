@@ -6,7 +6,7 @@
 package producer
 
 import (
-	"github.com/5GC-DEV/openapi-cdac/models"
+	"github.com/5GC-DEV/openapi-cdac/v2/models"
 	"github.com/omec-project/udr/producer/callback"
 )
 
@@ -17,22 +17,18 @@ func PreHandleOnDataChangeNotify(ueId string, resourceId string, patchItems []mo
 	changes := []models.ChangeItem{}
 
 	for _, patchItem := range patchItems {
-		change := models.ChangeItem{
-			Op:        models.ChangeType(patchItem.Op),
-			Path:      patchItem.Path,
-			From:      patchItem.From,
-			OrigValue: origValue,
-			NewValue:  newValue,
+		change := models.NewChangeItem(models.ChangeType(patchItem.GetOp()), patchItem.GetPath())
+		if from, ok := patchItem.GetFromOk(); ok {
+			change.SetFrom(*from)
 		}
-		changes = append(changes, change)
+		change.SetOrigValue(origValue)
+		change.SetNewValue(newValue)
+		changes = append(changes, *change)
 	}
 
-	notifyItem := models.NotifyItem{
-		ResourceId: resourceId,
-		Changes:    changes,
-	}
+	notifyItem := models.NewNotifyItem(resourceId, changes)
 
-	notifyItems = append(notifyItems, notifyItem)
+	notifyItems = append(notifyItems, *notifyItem)
 
 	go callback.SendOnDataChangeNotify(ueId, notifyItems)
 }
@@ -41,28 +37,28 @@ func PreHandlePolicyDataChangeNotification(ueId string, dataId string, value int
 	policyDataChangeNotification := models.PolicyDataChangeNotification{}
 
 	if ueId != "" {
-		policyDataChangeNotification.UeId = ueId
+		policyDataChangeNotification.SetUeId(ueId)
 	}
 
 	switch v := value.(type) {
 	case models.AmPolicyData:
-		policyDataChangeNotification.AmPolicyData = &v
+		policyDataChangeNotification.SetAmPolicyData(v)
 	case models.UePolicySet:
-		policyDataChangeNotification.UePolicySet = &v
+		policyDataChangeNotification.SetUePolicySet(v)
 	case models.SmPolicyData:
-		policyDataChangeNotification.SmPolicyData = &v
+		policyDataChangeNotification.SetSmPolicyData(v)
 	case models.UsageMonData:
-		policyDataChangeNotification.UsageMonId = dataId
-		policyDataChangeNotification.UsageMonData = &v
+		policyDataChangeNotification.SetUsageMonId(dataId)
+		policyDataChangeNotification.SetUsageMonData(v)
 	case models.SponsorConnectivityData:
-		policyDataChangeNotification.SponsorId = dataId
-		policyDataChangeNotification.SponsorConnectivityData = &v
+		policyDataChangeNotification.SetSponsorId(dataId)
+		policyDataChangeNotification.SetSponsorConnectivityData(v)
 	case models.BdtData:
-		policyDataChangeNotification.BdtRefId = dataId
-		policyDataChangeNotification.BdtData = &v
+		policyDataChangeNotification.SetBdtRefId(dataId)
+		policyDataChangeNotification.SetBdtData(v)
 	default:
 		return
 	}
 
-	go callback.SendPolicyDataChangeNotification(policyDataChangeNotification)
+	go callback.SendPolicyDataChangeNotification([]models.PolicyDataChangeNotification{policyDataChangeNotification})
 }

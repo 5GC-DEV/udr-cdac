@@ -8,27 +8,106 @@ package factory
 
 import (
 	"testing"
-
-	"github.com/omec-project/udr/logger"
-	"github.com/stretchr/testify/assert"
 )
 
-// Webui URL is not set then default Webui URL value is returned
-func TestGetDefaultWebuiUrl(t *testing.T) {
-	if err := InitConfigFactory("udr_config.yaml"); err != nil {
-		logger.CfgLog.Errorf("error in InitConfigFactory: %v", err)
+func TestWebuiUrl(t *testing.T) {
+	tests := []struct {
+		name       string
+		configFile string
+		want       string
+	}{
+		{
+			name:       "default webui URL",
+			configFile: "udr_config.yaml",
+			want:       defaultWebuiUri,
+		},
+		{
+			name:       "custom webui URL",
+			configFile: "udr_config_with_custom_webui_url.yaml",
+			want:       "http://myspecialwebui:9872",
+		},
 	}
-	got := UdrConfig.Configuration.WebuiUri
-	want := "webui:9876"
-	assert.Equal(t, got, want, "The webui URL is not correct.")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Save and restore original config
+			origUdrConfig := UdrConfig
+			t.Cleanup(func() { UdrConfig = origUdrConfig })
+
+			if err := InitConfigFactory(tt.configFile); err != nil {
+				t.Errorf("error in InitConfigFactory: %v", err)
+			}
+
+			got := UdrConfig.Configuration.WebuiUri
+			if got != tt.want {
+				t.Errorf("The webui URL is not correct. got = %q, want = %q", got, tt.want)
+			}
+		})
+	}
 }
 
-// Webui URL is set to a custom value then custom Webui URL is returned
-func TestGetCustomWebuiUrl(t *testing.T) {
-	if err := InitConfigFactory("udr_config_with_custom_webui_url.yaml"); err != nil {
-		logger.CfgLog.Errorf("error in InitConfigFactory: %v", err)
+func TestValidateWebuiUri(t *testing.T) {
+	tests := []struct {
+		name    string
+		uri     string
+		isValid bool
+	}{
+		{
+			name:    "valid https URI with port",
+			uri:     "https://webui:5001",
+			isValid: true,
+		},
+		{
+			name:    "valid http URI with port",
+			uri:     defaultWebuiUri,
+			isValid: true,
+		},
+		{
+			name:    "valid https URI without port",
+			uri:     "https://webui",
+			isValid: true,
+		},
+		{
+			name:    "valid http URI without port",
+			uri:     "http://webui.com",
+			isValid: true,
+		},
+		{
+			name:    "invalid host",
+			uri:     "http://:8080",
+			isValid: false,
+		},
+		{
+			name:    "invalid scheme",
+			uri:     "ftp://webui:21",
+			isValid: false,
+		},
+		{
+			name:    "missing scheme",
+			uri:     "webui:9090",
+			isValid: false,
+		},
+		{
+			name:    "missing host",
+			uri:     "https://",
+			isValid: false,
+		},
+		{
+			name:    "empty string",
+			uri:     "",
+			isValid: false,
+		},
 	}
-	got := UdrConfig.Configuration.WebuiUri
-	want := "myspecialwebui:9872"
-	assert.Equal(t, got, want, "The webui URL is not correct.")
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateWebuiUri(tc.uri)
+			if err == nil && !tc.isValid {
+				t.Errorf("expected URI: %s to be invalid", tc.uri)
+			}
+			if err != nil && tc.isValid {
+				t.Errorf("expected URI: %s to be valid", tc.uri)
+			}
+		})
+	}
 }
