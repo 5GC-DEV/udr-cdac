@@ -15,6 +15,7 @@ import (
 
 	protos "github.com/5GC-DEV/config5g-cdac/proto/sdcoreConfig"
 	"github.com/5GC-DEV/openapi-cdac/models"
+	"github.com/5GC-DEV/util-cdac/httpwrapper"
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/google/uuid"
 	"github.com/mitchellh/mapstructure"
@@ -22,7 +23,6 @@ import (
 	"github.com/omec-project/udr/logger"
 	stats "github.com/omec-project/udr/metrics"
 	"github.com/omec-project/udr/util"
-	"github.com/omec-project/util/httpwrapper"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )

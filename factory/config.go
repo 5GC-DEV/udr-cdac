@@ -13,8 +13,8 @@ package factory
 import (
 	protos "github.com/5GC-DEV/config5g-cdac/proto/sdcoreConfig"
 	"github.com/5GC-DEV/openapi-cdac/models"
+	utilLogger "github.com/5GC-DEV/util-cdac/logger"
 	"github.com/omec-project/udr/logger"
-	utilLogger "github.com/omec-project/util/logger"
 )
 
 const (
