@@ -19,9 +19,10 @@ import (
 	"strings"
 	"time"
 
+	utilLogger "github.com/5GC-DEV/util-cdac/logger"
+	"github.com/5GC-DEV/util-cdac/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/omec-project/udr/logger"
-	utilLogger "github.com/omec-project/util/logger"
 )
 
 const (
@@ -63,6 +64,7 @@ type Routes []Route
 // NewRouter returns a new router.
 func NewRouter() *gin.Engine {
 	router := utilLogger.NewGinWithZap(logger.GinLog)
+	router.Use(middleware.IdempotencyMiddleware())
 	router.Use(RequestTimestampLogger())
 	AddService(router)
 	return router

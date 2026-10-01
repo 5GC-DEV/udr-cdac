@@ -19,10 +19,10 @@ import (
 
 	"github.com/5GC-DEV/openapi-cdac"
 	"github.com/5GC-DEV/openapi-cdac/models"
+	"github.com/5GC-DEV/util-cdac/httpwrapper"
 	"github.com/gin-gonic/gin"
 	"github.com/omec-project/udr/logger"
 	"github.com/omec-project/udr/producer"
-	"github.com/omec-project/util/httpwrapper"
 )
 
 // HTTPGetOdbData - Retrieve ODB Data data by SUPI or GPSI
